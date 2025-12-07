@@ -1,0 +1,22 @@
+{
+  "name": "home-renovation-project-tracker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RogerioNakamashi/home-renovation-project-tracker.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RogerioNakamashi/home-renovation-project-tracker/issues"
+  },
+  "homepage": "https://github.com/RogerioNakamashi/home-renovation-project-tracker#readme",
+  "description": "",
+  "devDependencies": {
+    "turbo": "^2.6.3"
+  }
+}
