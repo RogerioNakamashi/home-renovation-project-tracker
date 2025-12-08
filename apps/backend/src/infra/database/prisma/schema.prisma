@@ -62,12 +62,3 @@ model Message {
   job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   sender User @relation("SentMessages", fields: [senderId], references: [id])
 }
-
-// Example model - remove and create your own models
-model Example {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
