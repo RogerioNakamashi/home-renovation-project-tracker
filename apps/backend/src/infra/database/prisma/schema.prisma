@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -17,8 +17,8 @@ enum UserRole {
 
 model User {
   id        String   @id @default(uuid())
-  email     String   @unique @db.VarChar(255)
-  name      String   @db.VarChar(255)
+  email     String   @unique
+  name      String
   role      UserRole
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -27,9 +27,6 @@ model User {
   jobsAsContractor Job[]     @relation("ContractorJobs")
   jobsAsHomeowner  Job[]     @relation("HomeownerJobs")
   sentMessages     Message[] @relation("SentMessages")
-
-  @@index([role])
-  @@index([email])
 }
 
 enum JobStatus {
@@ -41,8 +38,8 @@ enum JobStatus {
 
 model Job {
   id           String    @id @default(uuid())
-  description  String    @db.Text
-  address      String    @db.VarChar(500)
+  description  String
+  address      String
   status       JobStatus @default(PLANNING)
   cost         Float     @default(0)
   contractorId String
@@ -53,31 +50,24 @@ model Job {
   contractor User      @relation("ContractorJobs", fields: [contractorId], references: [id])
   homeowner  User      @relation("HomeownerJobs", fields: [homeownerId], references: [id])
   messages   Message[]
-
-  @@index([contractorId])
-  @@index([homeownerId])
-  @@index([status])
 }
 
 model Message {
   id        String   @id @default(uuid())
-  content   String   @db.Text
+  content   String
   jobId     String
   senderId  String
   createdAt DateTime @default(now())
 
   job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   sender User @relation("SentMessages", fields: [senderId], references: [id])
-
-  @@index([jobId])
-  @@index([senderId])
 }
 
 // Example model - remove and create your own models
 model Example {
   id          String   @id @default(uuid())
-  name        String   @db.VarChar(255)
-  description String?  @db.Text
+  name        String
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
