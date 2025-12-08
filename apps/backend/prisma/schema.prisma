@@ -23,8 +23,37 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  jobsAsContractor Job[] @relation("ContractorJobs")
+  jobsAsHomeowner  Job[] @relation("HomeownerJobs")
+
   @@index([role])
   @@index([email])
+}
+
+enum JobStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+model Job {
+  id           String    @id @default(uuid())
+  description  String    @db.Text
+  address      String    @db.VarChar(500)
+  status       JobStatus @default(PLANNING)
+  cost         Float     @default(0)
+  contractorId String
+  homeownerId  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  contractor User @relation("ContractorJobs", fields: [contractorId], references: [id])
+  homeowner  User @relation("HomeownerJobs", fields: [homeownerId], references: [id])
+
+  @@index([contractorId])
+  @@index([homeownerId])
+  @@index([status])
 }
 
 // Example model - remove and create your own models
