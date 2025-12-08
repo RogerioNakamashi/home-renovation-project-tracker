@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ExampleResolver } from '../../infra/http/graphql/resolvers/example.resolver';
-import { PrismaExampleRepository } from '../../infra/database/repositories/prisma-example.repository';
+import { PrismaExampleRepository } from '../../infra/database/prisma/prisma-example.repository';
 import { CreateExampleUseCase } from '../../core/use-cases/example/create-example.use-case';
 import { FindAllExamplesUseCase } from '../../core/use-cases/example/find-all-examples.use-case';
 import { FindExampleByIdUseCase } from '../../core/use-cases/example/find-example-by-id.use-case';

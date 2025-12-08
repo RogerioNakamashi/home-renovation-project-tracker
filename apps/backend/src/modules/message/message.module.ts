@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MessageResolver } from '../../infra/http/graphql/resolvers/message.resolver';
-import { PrismaMessageRepository } from '../../infra/database/repositories/prisma-message.repository';
+import { PrismaMessageRepository } from '../../infra/database/prisma/prisma-message.repository';
 import { SendMessageUseCase } from '../../core/use-cases/message/send-message.use-case';
 import { FindMessagesByJobUseCase } from '../../core/use-cases/message/find-messages-by-job.use-case';
 import { FindUserByIdUseCase } from '../../core/use-cases/user/find-user-by-id.use-case';

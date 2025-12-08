@@ -23,9 +23,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relações reversas (necessárias pelo Prisma quando há múltiplas FK para mesma tabela)
   jobsAsContractor Job[]     @relation("ContractorJobs")
   jobsAsHomeowner  Job[]     @relation("HomeownerJobs")
-  messages         Message[]
+  sentMessages     Message[] @relation("SentMessages")
 
   @@index([role])
   @@index([email])
@@ -66,7 +67,7 @@ model Message {
   createdAt DateTime @default(now())
 
   job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  sender User @relation(fields: [senderId], references: [id])
+  sender User @relation("SentMessages", fields: [senderId], references: [id])
 
   @@index([jobId])
   @@index([senderId])
