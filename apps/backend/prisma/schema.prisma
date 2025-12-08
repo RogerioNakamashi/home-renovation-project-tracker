@@ -12,8 +12,9 @@ datasource db {
 
 // Example model - remove and create your own models
 model Example {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name      String
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

@@ -3,8 +3,8 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AppResolver } from './app.resolver';
-import { PrismaModule } from './prisma/prisma.module';
+import { PrismaModule } from './infra/database/prisma/prisma.module';
+import { ExampleModule } from './modules/example/example.module';
 
 @Module({
   imports: [
@@ -14,8 +14,9 @@ import { PrismaModule } from './prisma/prisma.module';
       playground: true,
     }),
     PrismaModule,
+    ExampleModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AppResolver],
+  providers: [AppService],
 })
 export class AppModule {}
