@@ -6,3 +6,4 @@ export * from './create-job.input';
 export * from './update-job.input';
 export * from './update-job-cost.input';
 export * from './update-job-status.input';
+export * from './send-message.input';

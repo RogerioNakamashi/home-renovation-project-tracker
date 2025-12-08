@@ -23,8 +23,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  jobsAsContractor Job[] @relation("ContractorJobs")
-  jobsAsHomeowner  Job[] @relation("HomeownerJobs")
+  jobsAsContractor Job[]     @relation("ContractorJobs")
+  jobsAsHomeowner  Job[]     @relation("HomeownerJobs")
+  messages         Message[]
 
   @@index([role])
   @@index([email])
@@ -48,12 +49,27 @@ model Job {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  contractor User @relation("ContractorJobs", fields: [contractorId], references: [id])
-  homeowner  User @relation("HomeownerJobs", fields: [homeownerId], references: [id])
+  contractor User      @relation("ContractorJobs", fields: [contractorId], references: [id])
+  homeowner  User      @relation("HomeownerJobs", fields: [homeownerId], references: [id])
+  messages   Message[]
 
   @@index([contractorId])
   @@index([homeownerId])
   @@index([status])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  jobId     String
+  senderId  String
+  createdAt DateTime @default(now())
+
+  job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id])
+
+  @@index([jobId])
+  @@index([senderId])
 }
 
 // Example model - remove and create your own models

@@ -7,6 +7,7 @@ import { PrismaModule } from './infra/database/prisma/prisma.module';
 import { ExampleModule } from './modules/example/example.module';
 import { UserModule } from './modules/user/user.module';
 import { JobModule } from './modules/job/job.module';
+import { MessageModule } from './modules/message/message.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { JobModule } from './modules/job/job.module';
     ExampleModule,
     UserModule,
     JobModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
