@@ -62,6 +62,7 @@ export class UserResolver {
     const user = await this.createUserUseCase.execute({
       email: input.email,
       name: input.name,
+      password: input.password,
       role: UserRole[input.role],
     });
     return this.toGraphQL(user);

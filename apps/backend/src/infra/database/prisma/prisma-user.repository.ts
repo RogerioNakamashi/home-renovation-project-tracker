@@ -15,6 +15,7 @@ export class PrismaUserRepository extends UserRepository {
         id: entity.id,
         email: entity.email,
         name: entity.name,
+        passwordHash: entity.passwordHash,
         role: entity.role,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
@@ -83,6 +84,7 @@ export class PrismaUserRepository extends UserRepository {
     id: string;
     email: string;
     name: string;
+    passwordHash: string;
     role: string;
     createdAt: Date;
     updatedAt: Date;
@@ -91,6 +93,7 @@ export class PrismaUserRepository extends UserRepository {
       id: raw.id,
       email: raw.email,
       name: raw.name,
+      passwordHash: raw.passwordHash,
       role: raw.role as UserRole,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,

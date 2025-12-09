@@ -16,12 +16,13 @@ enum UserRole {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @default("")
+  role         UserRole
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relações reversas (necessárias pelo Prisma quando há múltiplas FK para mesma tabela)
   jobsAsContractor Job[]     @relation("ContractorJobs")
