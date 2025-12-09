@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { JobResolver } from '../../infra/http/graphql/resolvers/job.resolver';
-import { PrismaJobRepository } from '../../infra/database/prisma/prisma-job.repository';
 import { JobRepository } from '../../core/repositories/job.repository';
 import { CreateJobUseCase } from '../../core/use-cases/job/create-job.use-case';
 import { FindAllJobsUseCase } from '../../core/use-cases/job/find-all-jobs.use-case';
@@ -17,7 +16,7 @@ import { UserModule } from '../user/user.module';
   imports: [UserModule],
   providers: [
     JobResolver,
-    { provide: JobRepository, useClass: PrismaJobRepository },
+    JobRepository,
     CreateJobUseCase,
     FindAllJobsUseCase,
     FindJobByIdUseCase,

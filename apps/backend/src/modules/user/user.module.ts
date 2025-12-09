@@ -2,12 +2,9 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { UserResolver } from '../../infra/http/graphql/resolvers/user.resolver';
-import { PrismaUserRepository } from '../../infra/database/prisma/prisma-user.repository';
-import { PrismaRefreshTokenRepository } from '../../infra/database/prisma/prisma-refresh-token.repository';
 import { UserRepository } from '../../core/repositories/user.repository';
 import { RefreshTokenRepository } from '../../core/repositories/refresh-token.repository';
 import { AuthenticationService } from '../../core/services/authentication.service';
-import { JwtAuthenticationService } from '../../infra/services/authentication/jwt-authentication.service';
 import { CreateUserUseCase } from '../../core/use-cases/user/create-user.use-case';
 import { FindAllUsersUseCase } from '../../core/use-cases/user/find-all-users.use-case';
 import { FindUserByIdUseCase } from '../../core/use-cases/user/find-user-by-id.use-case';
@@ -22,9 +19,9 @@ import { LogoutUseCase } from '../../core/use-cases/user/logout.use-case';
   imports: [ConfigModule, JwtModule.register({})],
   providers: [
     UserResolver,
-    { provide: UserRepository, useClass: PrismaUserRepository },
-    { provide: RefreshTokenRepository, useClass: PrismaRefreshTokenRepository },
-    { provide: AuthenticationService, useClass: JwtAuthenticationService },
+    UserRepository,
+    RefreshTokenRepository,
+    AuthenticationService,
     CreateUserUseCase,
     FindAllUsersUseCase,
     FindUserByIdUseCase,
