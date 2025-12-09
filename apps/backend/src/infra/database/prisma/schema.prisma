@@ -25,9 +25,24 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Relações reversas (necessárias pelo Prisma quando há múltiplas FK para mesma tabela)
-  jobsAsContractor Job[]     @relation("ContractorJobs")
-  jobsAsHomeowner  Job[]     @relation("HomeownerJobs")
-  sentMessages     Message[] @relation("SentMessages")
+  jobsAsContractor Job[]          @relation("ContractorJobs")
+  jobsAsHomeowner  Job[]          @relation("HomeownerJobs")
+  sentMessages     Message[]      @relation("SentMessages")
+  refreshTokens    RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
 }
 
 enum JobStatus {

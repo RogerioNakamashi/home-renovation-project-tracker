@@ -1,7 +1,7 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { UserEntity, UserRole } from '../../entities/user.entity';
 import { UserRepository } from '../../repositories/user.repository';
-import { HashService } from '../../services/hash.service';
+import { AuthenticationService } from '../../services/authentication.service';
 
 export interface CreateUserInput {
   email: string;
@@ -14,7 +14,7 @@ export interface CreateUserInput {
 export class CreateUserUseCase {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly hashService: HashService,
+    private readonly authenticationService: AuthenticationService,
   ) {}
 
   async execute(input: CreateUserInput): Promise<UserEntity> {
@@ -24,7 +24,9 @@ export class CreateUserUseCase {
       throw new ConflictException('User with this email already exists');
     }
 
-    const passwordHash = await this.hashService.hash(input.password);
+    const passwordHash = await this.authenticationService.hashPassword(
+      input.password,
+    );
 
     const user = UserEntity.create({
       email: input.email,
