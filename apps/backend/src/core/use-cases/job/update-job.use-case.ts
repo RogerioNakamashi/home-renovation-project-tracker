@@ -4,6 +4,7 @@ import type { IJobRepository } from '../../repositories/job.repository';
 import { JOB_REPOSITORY } from '../../repositories/job.repository';
 
 export interface UpdateJobInput {
+  name?: string;
   description?: string;
   address?: string;
 }

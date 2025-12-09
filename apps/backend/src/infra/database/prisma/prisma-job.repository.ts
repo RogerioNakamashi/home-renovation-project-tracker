@@ -11,6 +11,7 @@ export class PrismaJobRepository implements IJobRepository {
     const created = await this.prisma.job.create({
       data: {
         id: entity.id,
+        name: entity.name,
         description: entity.description,
         address: entity.address,
         status: entity.status,
@@ -70,6 +71,7 @@ export class PrismaJobRepository implements IJobRepository {
     const updated = await this.prisma.job.update({
       where: { id: entity.id },
       data: {
+        name: entity.name,
         description: entity.description,
         address: entity.address,
         status: entity.status,
@@ -89,6 +91,7 @@ export class PrismaJobRepository implements IJobRepository {
 
   private toDomain(raw: {
     id: string;
+    name: string;
     description: string;
     address: string;
     status: string;
@@ -100,6 +103,7 @@ export class PrismaJobRepository implements IJobRepository {
   }): JobEntity {
     return JobEntity.create({
       id: raw.id,
+      name: raw.name,
       description: raw.description,
       address: raw.address,
       status: raw.status as JobStatus,

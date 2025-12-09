@@ -4,6 +4,7 @@ import type { IJobRepository } from '../../repositories/job.repository';
 import { JOB_REPOSITORY } from '../../repositories/job.repository';
 
 export interface CreateJobInput {
+  name: string;
   description: string;
   address: string;
   contractorId: string;
@@ -20,6 +21,7 @@ export class CreateJobUseCase {
 
   async execute(input: CreateJobInput): Promise<JobEntity> {
     const job = JobEntity.create({
+      name: input.name,
       description: input.description,
       address: input.address,
       contractorId: input.contractorId,

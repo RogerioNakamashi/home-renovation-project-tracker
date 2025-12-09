@@ -38,6 +38,7 @@ enum JobStatus {
 
 model Job {
   id           String    @id @default(uuid())
+  name         String
   description  String
   address      String
   status       JobStatus @default(PLANNING)

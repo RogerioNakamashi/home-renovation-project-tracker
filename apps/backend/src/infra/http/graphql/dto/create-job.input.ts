@@ -11,6 +11,11 @@ import {
 export class CreateJobInput {
   @Field()
   @IsString()
+  @MaxLength(255)
+  name: string;
+
+  @Field()
+  @IsString()
   @MaxLength(1000)
   description: string;
 

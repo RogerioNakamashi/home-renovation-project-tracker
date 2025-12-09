@@ -9,6 +9,7 @@ export enum JobStatus {
 
 export interface JobProps {
   id?: string;
+  name: string;
   description: string;
   address: string;
   status?: JobStatus;
@@ -21,6 +22,7 @@ export interface JobProps {
 
 export class JobEntity {
   readonly id: string;
+  readonly name: string;
   readonly description: string;
   readonly address: string;
   readonly status: JobStatus;
@@ -32,6 +34,7 @@ export class JobEntity {
 
   private constructor(props: Required<JobProps>) {
     this.id = props.id;
+    this.name = props.name;
     this.description = props.description;
     this.address = props.address;
     this.status = props.status;
@@ -45,6 +48,7 @@ export class JobEntity {
   static create(props: JobProps): JobEntity {
     return new JobEntity({
       id: props.id ?? randomUUID(),
+      name: props.name,
       description: props.description,
       address: props.address,
       status: props.status ?? JobStatus.PLANNING,
@@ -58,11 +62,12 @@ export class JobEntity {
 
   update(
     props: Partial<
-      Pick<JobProps, 'description' | 'address' | 'status' | 'cost'>
+      Pick<JobProps, 'name' | 'description' | 'address' | 'status' | 'cost'>
     >,
   ): JobEntity {
     return new JobEntity({
       id: this.id,
+      name: props.name ?? this.name,
       description: props.description ?? this.description,
       address: props.address ?? this.address,
       status: props.status ?? this.status,

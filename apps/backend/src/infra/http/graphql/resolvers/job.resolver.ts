@@ -73,6 +73,7 @@ export class JobResolver {
   @Mutation(() => JobType)
   async createJob(@Args('input') input: CreateJobInput): Promise<JobType> {
     const job = await this.createJobUseCase.execute({
+      name: input.name,
       description: input.description,
       address: input.address,
       contractorId: input.contractorId,
@@ -85,6 +86,7 @@ export class JobResolver {
   @Mutation(() => JobType)
   async updateJob(@Args('input') input: UpdateJobInput): Promise<JobType> {
     const job = await this.updateJobUseCase.execute(input.id, {
+      name: input.name,
       description: input.description,
       address: input.address,
     });
@@ -154,6 +156,7 @@ export class JobResolver {
 
   private toGraphQL(entity: {
     id: string;
+    name: string;
     description: string;
     address: string;
     status: string;
@@ -165,6 +168,7 @@ export class JobResolver {
   }): JobType {
     return {
       id: entity.id,
+      name: entity.name,
       description: entity.description,
       address: entity.address,
       status: entity.status as JobStatusEnum,

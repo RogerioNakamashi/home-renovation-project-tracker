@@ -9,6 +9,12 @@ export class UpdateJobInput {
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
+  name?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   @MaxLength(1000)
   description?: string;
 

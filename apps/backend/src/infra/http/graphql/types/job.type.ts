@@ -25,6 +25,9 @@ export class JobType {
   id: string;
 
   @Field()
+  name: string;
+
+  @Field()
   description: string;
 
   @Field()
