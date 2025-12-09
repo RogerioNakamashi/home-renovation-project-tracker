@@ -1,13 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import type { IJobRepository } from '../../repositories/job.repository';
-import { JOB_REPOSITORY } from '../../repositories/job.repository';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { JobRepository } from '../../repositories/job.repository';
 
 @Injectable()
 export class DeleteJobUseCase {
-  constructor(
-    @Inject(JOB_REPOSITORY)
-    private readonly jobRepository: IJobRepository,
-  ) {}
+  constructor(private readonly jobRepository: JobRepository) {}
 
   async execute(id: string): Promise<void> {
     const job = await this.jobRepository.findById(id);

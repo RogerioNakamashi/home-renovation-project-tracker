@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import type { IMessageRepository } from '../../../core/repositories/message.repository';
+import { MessageRepository } from '../../../core/repositories/message.repository';
 import { MessageEntity } from '../../../core/entities/message.entity';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class PrismaMessageRepository implements IMessageRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaMessageRepository extends MessageRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   async create(entity: MessageEntity): Promise<MessageEntity> {
     const created = await this.prisma.message.create({

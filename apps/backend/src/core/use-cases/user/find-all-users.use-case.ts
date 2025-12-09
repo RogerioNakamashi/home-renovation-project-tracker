@@ -1,14 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UserEntity } from '../../entities/user.entity';
-import type { IUserRepository } from '../../repositories/user.repository';
-import { USER_REPOSITORY } from '../../repositories/user.repository';
+import { UserRepository } from '../../repositories/user.repository';
 
 @Injectable()
 export class FindAllUsersUseCase {
-  constructor(
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: IUserRepository,
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
   async execute(): Promise<UserEntity[]> {
     return this.userRepository.findAll();

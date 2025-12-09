@@ -1,10 +1,8 @@
 import type { MessageEntity } from '../entities/message.entity';
 
-export interface IMessageRepository {
-  create(entity: MessageEntity): Promise<MessageEntity>;
-  findByJobId(jobId: string): Promise<MessageEntity[]>;
-  findById(id: string): Promise<MessageEntity | null>;
-  delete(id: string): Promise<void>;
+export abstract class MessageRepository {
+  abstract create(entity: MessageEntity): Promise<MessageEntity>;
+  abstract findByJobId(jobId: string): Promise<MessageEntity[]>;
+  abstract findById(id: string): Promise<MessageEntity | null>;
+  abstract delete(id: string): Promise<void>;
 }
-
-export const MESSAGE_REPOSITORY = Symbol('MESSAGE_REPOSITORY');

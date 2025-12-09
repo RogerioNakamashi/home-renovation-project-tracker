@@ -1,14 +1,11 @@
 import {
-  Inject,
   Injectable,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { MessageEntity } from '../../entities/message.entity';
-import type { IMessageRepository } from '../../repositories/message.repository';
-import { MESSAGE_REPOSITORY } from '../../repositories/message.repository';
-import type { IJobRepository } from '../../repositories/job.repository';
-import { JOB_REPOSITORY } from '../../repositories/job.repository';
+import { MessageRepository } from '../../repositories/message.repository';
+import { JobRepository } from '../../repositories/job.repository';
 
 export interface SendMessageInput {
   content: string;
@@ -19,10 +16,8 @@ export interface SendMessageInput {
 @Injectable()
 export class SendMessageUseCase {
   constructor(
-    @Inject(MESSAGE_REPOSITORY)
-    private readonly messageRepository: IMessageRepository,
-    @Inject(JOB_REPOSITORY)
-    private readonly jobRepository: IJobRepository,
+    private readonly messageRepository: MessageRepository,
+    private readonly jobRepository: JobRepository,
   ) {}
 
   async execute(input: SendMessageInput): Promise<MessageEntity> {

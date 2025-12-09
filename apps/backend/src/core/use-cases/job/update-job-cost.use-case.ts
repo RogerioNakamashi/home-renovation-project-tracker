@@ -1,19 +1,14 @@
 import {
-  Inject,
   Injectable,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
 import { JobEntity } from '../../entities/job.entity';
-import type { IJobRepository } from '../../repositories/job.repository';
-import { JOB_REPOSITORY } from '../../repositories/job.repository';
+import { JobRepository } from '../../repositories/job.repository';
 
 @Injectable()
 export class UpdateJobCostUseCase {
-  constructor(
-    @Inject(JOB_REPOSITORY)
-    private readonly jobRepository: IJobRepository,
-  ) {}
+  constructor(private readonly jobRepository: JobRepository) {}
 
   async execute(
     id: string,

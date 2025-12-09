@@ -1,7 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UserEntity, UserRole } from '../../entities/user.entity';
-import type { IUserRepository } from '../../repositories/user.repository';
-import { USER_REPOSITORY } from '../../repositories/user.repository';
+import { UserRepository } from '../../repositories/user.repository';
 
 export interface CreateUserInput {
   email: string;
@@ -11,10 +10,7 @@ export interface CreateUserInput {
 
 @Injectable()
 export class CreateUserUseCase {
-  constructor(
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: IUserRepository,
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
   async execute(input: CreateUserInput): Promise<UserEntity> {
     const existingUser = await this.userRepository.findByEmail(input.email);

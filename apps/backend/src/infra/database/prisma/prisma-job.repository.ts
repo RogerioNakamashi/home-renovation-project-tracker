@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import type { IJobRepository } from '../../../core/repositories/job.repository';
+import { JobRepository } from '../../../core/repositories/job.repository';
 import { JobEntity, JobStatus } from '../../../core/entities/job.entity';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class PrismaJobRepository implements IJobRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaJobRepository extends JobRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   async create(entity: JobEntity): Promise<JobEntity> {
     const created = await this.prisma.job.create({
