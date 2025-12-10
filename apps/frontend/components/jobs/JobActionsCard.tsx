@@ -35,7 +35,7 @@ export function JobActionsCard({
       </Typography>
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-        {!isCompleted && (
+        {!isCompleted && !isCanceled && (
           <Button
             variant="contained"
             fullWidth
@@ -50,20 +50,21 @@ export function JobActionsCard({
             Mark as Complete
           </Button>
         )}
-
-        <Button
-          variant="contained"
-          fullWidth
-          onClick={onCancelJob}
-          sx={{
-            bgcolor: "error.main",
-            "&:hover": {
-              bgcolor: "error.dark",
-            },
-          }}
-        >
-          Cancel Job
-        </Button>
+        {!isCompleted && !isCanceled && (
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={onCancelJob}
+            sx={{
+              bgcolor: "error.main",
+              "&:hover": {
+                bgcolor: "error.dark",
+              },
+            }}
+          >
+            Cancel Job
+          </Button>
+        )}
       </Box>
     </Paper>
   );

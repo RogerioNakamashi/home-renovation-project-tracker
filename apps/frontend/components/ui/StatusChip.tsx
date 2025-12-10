@@ -2,7 +2,7 @@
 
 import { Chip, ChipProps } from "@mui/material";
 
-export type JobStatus = "planning" | "in_progress" | "completed" | "canceled";
+export type JobStatus = "PLANNING" | "IN_PROGRESS" | "COMPLETED" | "CANCELED";
 
 interface StatusChipProps {
   status: JobStatus;
@@ -13,22 +13,22 @@ const statusConfig: Record<
   JobStatus,
   { label: string; bgcolor: string; color: string }
 > = {
-  planning: {
+  PLANNING: {
     label: "Planning",
     bgcolor: "#EFF6FF",
     color: "#1D4ED8",
   },
-  in_progress: {
+  IN_PROGRESS: {
     label: "In Progress",
     bgcolor: "#FFFBEB",
     color: "#B45309",
   },
-  completed: {
+  COMPLETED: {
     label: "Completed",
     bgcolor: "#F0FDF4",
     color: "#15803D",
   },
-  canceled: {
+  CANCELED: {
     label: "Canceled",
     bgcolor: "#FEF2F2",
     color: "#B91C1C",

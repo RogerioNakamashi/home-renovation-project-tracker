@@ -54,6 +54,15 @@ export const GET_JOBS_BY_HOMEOWNER_QUERY = gql`
   }
 `;
 
+export const GET_JOB_QUERY = gql`
+  ${JOB_FRAGMENT}
+  query GetJob($id: ID!) {
+    job(id: $id) {
+      ...JobFields
+    }
+  }
+`;
+
 export const CREATE_JOB_MUTATION = gql`
   ${JOB_FRAGMENT}
   mutation CreateJob($input: CreateJobInput!) {

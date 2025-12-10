@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { gql } from "@apollo/client";
 import {
   Box,
   Typography,
@@ -32,13 +31,13 @@ import {
 } from "@/components/jobs";
 import { useRouter, useParams } from "next/navigation";
 import { getUser, clearAuth, getUserId } from "@/lib/auth";
-import { JOB_FRAGMENT } from "@/lib/graphql";
 import {
+  GET_JOB_QUERY,
   UPDATE_JOB_COST_MUTATION,
   UPDATE_JOB_STATUS_MUTATION,
 } from "@/lib/graphql/job";
 
-import type { GQLJob, JobDetail, AuthUser } from "@/lib/graphql/types";
+import type { GQLJob, AuthUser } from "@/lib/graphql/types";
 
 export default function JobDetailPage() {
   const router = useRouter();
@@ -48,7 +47,7 @@ export default function JobDetailPage() {
   const [user, setUser] = useState<AuthUser | null>(
     getUser() as AuthUser | null
   );
-  const [job, setJob] = useState<JobDetail | null>(null);
+  // derive job from query result (avoid duplicating cache state)
   type Message = {
     id: string;
     senderId: string;
@@ -58,173 +57,8 @@ export default function JobDetailPage() {
     isOwnMessage: boolean;
   };
   const [messages, setMessages] = useState<Message[]>([]);
-  const [status, setStatus] = useState<JobStatus>("planning");
   const [updateCostOpen, setUpdateCostOpen] = useState(false);
   const [newCostInput, setNewCostInput] = useState<string>(String(0));
-
-  // GraphQL: fetch job by id
-  const GET_JOB_QUERY = gql`
-    ${JOB_FRAGMENT}
-    query GetJob($id: ID!) {
-      job(id: $id) {
-        ...JobFields
-      }
-    }
-  `;
-
-  const {
-    data: jobData,
-    loading: jobLoading,
-    error: jobError,
-  } = useQuery<{
-    job?: GQLJob;
-  }>(GET_JOB_QUERY, {
-    variables: { id: jobId },
-    skip: !jobId,
-    fetchPolicy: "cache-and-network",
-  });
-
-  // when jobData arrives, map fields to UI shape and update state
-  useEffect(() => {
-    if (jobData?.job) {
-      const j = jobData.job;
-      const mapped: JobDetail = {
-        id: String(j.id),
-        title: j.name ?? j.title ?? "Untitled",
-        status: (j.status ?? "planning").toString(),
-        description: j.description ?? "",
-        address: j.address ?? "",
-        cost: typeof j.cost === "number" ? j.cost : Number(j.cost) || 0,
-        createdAt: j.createdAt ?? "",
-        updatedAt: j.updatedAt ?? "",
-        homeowner: {
-          id: j.homeowner?.id,
-          name: j.homeowner?.name ?? "",
-          email: j.homeowner?.email ?? "",
-        },
-        contractor: j.contractor
-          ? {
-              id: j.contractor.id,
-              name: j.contractor.name ?? "",
-              email: j.contractor.email ?? "",
-            }
-          : null,
-      };
-      setJob(mapped);
-      setStatus(mapped.status as JobStatus);
-    }
-  }, [jobData]);
-
-  useEffect(() => {
-    if (!user) {
-      clearAuth();
-      router.push("/login");
-    }
-    console.log("User:", user);
-  }, [user, router]);
-
-  const handleLogout = () => {
-    clearAuth();
-    router.push("/login");
-  };
-
-  const handleStatusChange = async (event: SelectChangeEvent<JobStatus>) => {
-    const newStatus = event.target.value as JobStatus;
-    setStatus(newStatus);
-    if (job) setJob({ ...job, status: newStatus });
-    try {
-      if (!job) return;
-      const enumMap: Record<string, string> = {
-        planning: "PLANNING",
-        in_progress: "IN_PROGRESS",
-        completed: "COMPLETED",
-        canceled: "CANCELED",
-      };
-      const res = await updateJobStatus({
-        variables: {
-          input: { jobId: job.id, status: enumMap[newStatus] ?? "PLANNING" },
-        },
-      });
-      if (res?.data?.updateJobStatus) {
-        const updated = res.data.updateJobStatus;
-        setJob((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: String(updated.status).toLowerCase() as JobStatus,
-              }
-            : prev
-        );
-      }
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("update status failed", err);
-    }
-  };
-
-  const handleSendMessage = (content: string) => {
-    const newMessage = {
-      id: `m${messages.length + 1}`,
-      senderId:
-        user?.email && user.email.includes("contractor") ? "c-1" : "hw-1",
-      senderName: user?.name || "Unknown",
-      content,
-      timestamp: new Date().toISOString(),
-      isOwnMessage: true,
-    };
-    setMessages([...messages, newMessage]);
-    // TODO: GraphQL mutation to send message
-  };
-
-  const handleMarkComplete = () => {
-    // Use mutation to mark as complete
-    (async () => {
-      if (!job) return;
-      try {
-        const res = await updateJobStatus({
-          variables: { input: { jobId: job.id, status: "COMPLETED" } },
-        });
-        if (res?.data?.updateJobStatus) {
-          const updated = res.data.updateJobStatus;
-          const newStatusStr = String(updated.status).toLowerCase();
-          setStatus(newStatusStr as JobStatus);
-          setJob((prev) =>
-            prev ? { ...prev, status: newStatusStr as JobStatus } : prev
-          );
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error("mark complete failed", err);
-      }
-    })();
-  };
-
-  const handleCancelJob = () => {
-    (async () => {
-      if (!job) return;
-      try {
-        const res = await updateJobStatus({
-          variables: { input: { jobId: job.id, status: "CANCELED" } },
-        });
-        if (res?.data?.updateJobStatus) {
-          const updated = res.data.updateJobStatus;
-          const newStatusStr = String(updated.status).toLowerCase();
-          setStatus(newStatusStr as JobStatus);
-          setJob((prev) =>
-            prev ? { ...prev, status: newStatusStr as JobStatus } : prev
-          );
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error("cancel job failed", err);
-      }
-    })();
-  };
-
-  const handleUpdateCost = () => {
-    setNewCostInput(String(job?.cost ?? 0));
-    setUpdateCostOpen(true);
-  };
 
   // mutations
   type UpdateJobCostResp = { updateJobCost: GQLJob };
@@ -242,30 +76,21 @@ export default function JobDetailPage() {
     UpdateJobStatusVars
   >(UPDATE_JOB_STATUS_MUTATION);
 
-  const closeUpdateCost = () => {
-    setUpdateCostOpen(false);
-    setNewCostInput(String(0));
-  };
+  const {
+    data: jobData,
+    loading: jobLoading,
+    error: jobError,
+  } = useQuery<{
+    job?: GQLJob;
+  }>(GET_JOB_QUERY, {
+    variables: { id: jobId },
+    skip: !jobId,
+    fetchPolicy: "cache-and-network",
+  });
 
-  const submitUpdateCost = async () => {
-    if (!job) return;
-    const parsed = Number(newCostInput) || 0;
-    try {
-      const contractorId = getUserId();
-      const res = await updateJobCost({
-        variables: { input: { jobId: job.id, cost: parsed, contractorId } },
-      });
-      if (res?.data?.updateJobCost) {
-        const updated = res.data.updateJobCost;
-        setJob((prev) =>
-          prev ? { ...prev, cost: Number(updated.cost) || parsed } : prev
-        );
-      }
-      closeUpdateCost();
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("update cost failed", err);
-    }
+  const handleLogout = () => {
+    clearAuth();
+    router.push("/login");
   };
 
   if (!user) {
@@ -288,12 +113,6 @@ export default function JobDetailPage() {
       }
     : null;
 
-  // Update message ownership based on current user
-  const messagesWithOwnership = messages.map((msg) => ({
-    ...msg,
-    isOwnMessage: msg.senderId === currentUserId,
-  }));
-
   // Loading / error states
   if (jobLoading) {
     return (
@@ -311,9 +130,112 @@ export default function JobDetailPage() {
     );
   }
 
-  if (!job) {
+  if (!jobData?.job) {
     return null;
   }
+
+  const job = jobData.job;
+
+  const handleStatusChange = async (event: SelectChangeEvent<JobStatus>) => {
+    const newStatus = event.target.value as JobStatus;
+    console.log({ newStatus });
+    try {
+      if (!jobData.job) return;
+      await updateJobStatus({
+        variables: {
+          input: {
+            jobId: job.id,
+            status: newStatus,
+          },
+        },
+        refetchQueries: [{ query: GET_JOB_QUERY, variables: { id: job.id } }],
+        awaitRefetchQueries: true,
+      });
+      // refetch will update mappedJob
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("update status failed", err);
+    }
+  };
+
+  const handleSendMessage = (content: string) => {
+    const newMessage = {
+      id: `m${messages.length + 1}`,
+      senderId:
+        user?.email && user.email.includes("contractor") ? "c-1" : "hw-1",
+      senderName: user?.name || "Unknown",
+      content,
+      timestamp: new Date().toISOString(),
+      isOwnMessage: true,
+    };
+    setMessages([...messages, newMessage]);
+    // TODO: GraphQL mutation to send message
+  };
+
+  const handleMarkComplete = () => {
+    (async () => {
+      try {
+        const res = await updateJobStatus({
+          variables: { input: { jobId: job.id, status: "COMPLETED" } },
+          refetchQueries: [{ query: GET_JOB_QUERY, variables: { id: job.id } }],
+          awaitRefetchQueries: true,
+        });
+        if (res?.data?.updateJobStatus) {
+        }
+      } catch (err) {
+        console.error("mark complete failed", err);
+      }
+    })();
+  };
+
+  const handleCancelJob = () => {
+    (async () => {
+      try {
+        const res = await updateJobStatus({
+          variables: { input: { jobId: job.id, status: "CANCELED" } },
+          refetchQueries: [{ query: GET_JOB_QUERY, variables: { id: job.id } }],
+          awaitRefetchQueries: true,
+        });
+        if (res?.data?.updateJobStatus) {
+        }
+      } catch (err) {
+        console.error("cancel job failed", err);
+      }
+    })();
+  };
+
+  const handleUpdateCost = () => {
+    setNewCostInput(String(job?.cost ?? 0));
+    setUpdateCostOpen(true);
+  };
+
+  const closeUpdateCost = () => {
+    setUpdateCostOpen(false);
+    setNewCostInput(String(0));
+  };
+
+  const submitUpdateCost = async () => {
+    const parsed = Number(newCostInput) || 0;
+    try {
+      const contractorId = getUserId();
+      await updateJobCost({
+        variables: {
+          input: { jobId: job.id, cost: parsed, contractorId },
+        },
+        refetchQueries: [{ query: GET_JOB_QUERY, variables: { id: job.id } }],
+        awaitRefetchQueries: true,
+      });
+      closeUpdateCost();
+    } catch (err) {
+      console.error("update cost failed", err);
+    }
+  };
+
+  // Update message ownership based on current user
+  const messagesWithOwnership = messages.map((msg) => ({
+    ...msg,
+    isOwnMessage: msg.senderId === currentUserId,
+  }));
 
   return (
     <MainLayout user={layoutUser} onLogout={handleLogout}>
@@ -353,27 +275,38 @@ export default function JobDetailPage() {
             }}
           >
             <Typography variant="h4" sx={{ fontWeight: 500 }}>
-              {job.title}
+              {job.name}
             </Typography>
-            {isContractor && (
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <Select
-                  value={status}
-                  onChange={handleStatusChange}
-                  sx={{
-                    bgcolor: "background.paper",
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "divider",
-                    },
-                  }}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              {isContractor ? (
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <Select
+                    value={job.status}
+                    onChange={handleStatusChange}
+                    sx={{
+                      bgcolor: "background.paper",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "divider",
+                      },
+                    }}
+                  >
+                    <MenuItem value="PLANNING">Planning</MenuItem>
+                    <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+                    <MenuItem value="COMPLETED">Completed</MenuItem>
+                    <MenuItem value="CANCELED">Canceled</MenuItem>
+                  </Select>
+                </FormControl>
+              ) : (
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
                 >
-                  <MenuItem value="planning">Planning</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                  <MenuItem value="canceled">Canceled</MenuItem>
-                </Select>
-              </FormControl>
-            )}
+                  <Typography variant="body2" color="text.secondary">
+                    Status
+                  </Typography>
+                  <Typography variant="body1">{status}</Typography>
+                </Box>
+              )}
+            </Box>
           </Box>
         </Paper>
 
@@ -384,8 +317,8 @@ export default function JobDetailPage() {
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {/* Project Info */}
               <ProjectInfo
-                description={job.description ?? ""}
-                address={job.address ?? ""}
+                description={job.description}
+                address={job.address}
                 createdAt={job.createdAt ?? ""}
                 homeowner={{
                   name: job.homeowner?.name ?? "",
@@ -445,8 +378,8 @@ export default function JobDetailPage() {
                 onMarkComplete={handleMarkComplete}
                 onCancelJob={handleCancelJob}
                 canEdit={isContractor}
-                isCompleted={status === "completed"}
-                isCanceled={status === "canceled"}
+                isCompleted={job.status === "COMPLETED"}
+                isCanceled={job.status === "CANCELED"}
               />
             </Box>
           </Grid>

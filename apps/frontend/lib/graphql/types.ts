@@ -8,13 +8,12 @@ export type GQLUser = {
 };
 
 export type GQLJob = {
-  id: string | number;
-  name?: string;
-  title?: string;
-  status?: string;
-  description?: string;
-  address?: string;
-  cost?: number | string;
+  id: string;
+  name: string;
+  status: "COMPLETED" | "CANCELED" | "IN_PROGRESS" | "PLANNING";
+  description: string;
+  address: string;
+  cost: number | string;
   homeowner?: { id?: string; name?: string; email?: string } | null;
   contractor?: { id?: string; name?: string; email?: string } | null;
   updatedAt?: string | null;

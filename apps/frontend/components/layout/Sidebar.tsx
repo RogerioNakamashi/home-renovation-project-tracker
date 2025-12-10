@@ -29,11 +29,6 @@ const menuItems = [
     icon: DashboardIcon,
     path: "/dashboard",
   },
-  {
-    label: "Jobs",
-    icon: WorkIcon,
-    path: "/jobs",
-  },
 ];
 
 export function Sidebar({ open = true }: SidebarProps) {
