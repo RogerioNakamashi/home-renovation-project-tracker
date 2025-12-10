@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery } from "@apollo/client/react";
+import { gql } from "@apollo/client";
 import {
   Box,
   Typography,
@@ -23,58 +25,34 @@ import {
 } from "@/components/jobs";
 import { useRouter, useParams } from "next/navigation";
 import { getUser, clearAuth } from "@/lib/auth";
+import { JOB_FRAGMENT } from "@/lib/graphql";
 
-// Mock data - will be replaced with GraphQL queries
-const mockJobDetail = {
-  id: "1",
-  title: "Kitchen Remodel",
-  status: "in_progress" as JobStatus,
-  description:
-    "Complete kitchen renovation including new cabinets, countertops, and appliances.",
-  address: "123 Main Street, Springfield, IL 62701",
-  cost: 45000,
-  createdAt: "2025-11-15",
-  updatedAt: "2025-12-08",
-  homeowner: {
-    id: "hw-1",
-    name: "Sarah Williams",
-    email: "sarah@email.com",
-  },
-  contractor: {
-    id: "c-1",
-    name: "Mike Johnson",
-    email: "mike@contractor.com",
-  },
+type GQLJob = {
+  id: string | number;
+  name?: string;
+  title?: string;
+  status?: string;
+  description?: string;
+  address?: string;
+  cost?: number | string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  homeowner?: { id?: string; name?: string; email?: string } | null;
+  contractor?: { id?: string; name?: string; email?: string } | null;
 };
 
-const mockMessages = [
-  {
-    id: "m1",
-    senderId: "c-1",
-    senderName: "Mike Johnson",
-    content:
-      "Good morning! The cabinets arrived today and we'll start installation tomorrow.",
-    timestamp: "2025-12-08T06:30:00",
-    isOwnMessage: true,
-  },
-  {
-    id: "m2",
-    senderId: "hw-1",
-    senderName: "Sarah Williams",
-    content: "That's great news! Will you need access to the house all day?",
-    timestamp: "2025-12-08T07:15:00",
-    isOwnMessage: false,
-  },
-  {
-    id: "m3",
-    senderId: "c-1",
-    senderName: "Mike Johnson",
-    content:
-      "Yes, we'll be there from 8 AM to 5 PM. Please make sure pets are secured.",
-    timestamp: "2025-12-08T07:45:00",
-    isOwnMessage: true,
-  },
-];
+interface JobDetail {
+  id: string;
+  title: string;
+  status: JobStatus;
+  description: string;
+  address: string;
+  cost: number;
+  createdAt: string;
+  updatedAt: string;
+  homeowner: { id?: string; name: string; email: string };
+  contractor: { id?: string; name: string; email: string } | null;
+}
 
 interface User {
   name: string;
@@ -88,9 +66,70 @@ export default function JobDetailPage() {
   const jobId = params.id as string;
 
   const [user, setUser] = useState<User | null>(getUser() as User | null);
-  const [job, setJob] = useState(mockJobDetail);
-  const [messages, setMessages] = useState(mockMessages);
-  const [status, setStatus] = useState<JobStatus>(job.status);
+  const [job, setJob] = useState<JobDetail | null>(null);
+  type Message = {
+    id: string;
+    senderId: string;
+    senderName: string;
+    content: string;
+    timestamp: string;
+    isOwnMessage: boolean;
+  };
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [status, setStatus] = useState<JobStatus>("planning");
+
+  // GraphQL: fetch job by id
+  const GET_JOB_QUERY = gql`
+    ${JOB_FRAGMENT}
+    query GetJob($id: ID!) {
+      job(id: $id) {
+        ...JobFields
+      }
+    }
+  `;
+
+  const {
+    data: jobData,
+    loading: jobLoading,
+    error: jobError,
+  } = useQuery<{
+    job?: GQLJob;
+  }>(GET_JOB_QUERY, {
+    variables: { id: jobId },
+    skip: !jobId,
+    fetchPolicy: "cache-and-network",
+  });
+
+  // when jobData arrives, map fields to UI shape and update state
+  useEffect(() => {
+    if (jobData?.job) {
+      const j = jobData.job;
+      const mapped: JobDetail = {
+        id: String(j.id),
+        title: j.name ?? j.title ?? "Untitled",
+        status: (j.status ?? "planning").toString() as JobStatus,
+        description: j.description ?? "",
+        address: j.address ?? "",
+        cost: typeof j.cost === "number" ? j.cost : Number(j.cost) || 0,
+        createdAt: j.createdAt ?? "",
+        updatedAt: j.updatedAt ?? "",
+        homeowner: {
+          id: j.homeowner?.id,
+          name: j.homeowner?.name ?? "",
+          email: j.homeowner?.email ?? "",
+        },
+        contractor: j.contractor
+          ? {
+              id: j.contractor.id,
+              name: j.contractor.name ?? "",
+              email: j.contractor.email ?? "",
+            }
+          : null,
+      };
+      setJob(mapped);
+      setStatus(mapped.status as JobStatus);
+    }
+  }, [jobData]);
 
   useEffect(() => {
     if (!user) {
@@ -108,7 +147,7 @@ export default function JobDetailPage() {
   const handleStatusChange = (event: SelectChangeEvent<JobStatus>) => {
     const newStatus = event.target.value as JobStatus;
     setStatus(newStatus);
-    setJob({ ...job, status: newStatus });
+    if (job) setJob({ ...job, status: newStatus });
     // TODO: GraphQL mutation to update status
   };
 
@@ -127,13 +166,13 @@ export default function JobDetailPage() {
 
   const handleMarkComplete = () => {
     setStatus("completed");
-    setJob({ ...job, status: "completed" });
+    if (job) setJob({ ...job, status: "completed" });
     // TODO: GraphQL mutation
   };
 
   const handleCancelJob = () => {
     setStatus("canceled");
-    setJob({ ...job, status: "canceled" });
+    if (job) setJob({ ...job, status: "canceled" });
     // TODO: GraphQL mutation
   };
 
@@ -154,6 +193,27 @@ export default function JobDetailPage() {
     ...msg,
     isOwnMessage: msg.senderId === currentUserId,
   }));
+
+  // Loading / error states
+  if (jobLoading) {
+    return (
+      <MainLayout user={user} onLogout={handleLogout}>
+        <Box sx={{ p: 4 }}>Loading job…</Box>
+      </MainLayout>
+    );
+  }
+
+  if (jobError) {
+    return (
+      <MainLayout user={user} onLogout={handleLogout}>
+        <Box sx={{ p: 4, color: "error.main" }}>Error loading job.</Box>
+      </MainLayout>
+    );
+  }
+
+  if (!job) {
+    return null;
+  }
 
   return (
     <MainLayout user={user} onLogout={handleLogout}>
