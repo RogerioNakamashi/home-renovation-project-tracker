@@ -36,8 +36,12 @@ import {
   UPDATE_JOB_COST_MUTATION,
   UPDATE_JOB_STATUS_MUTATION,
 } from "@/lib/graphql/job";
+import {
+  GET_MESSAGES_BY_JOB_QUERY,
+  SEND_MESSAGE_MUTATION,
+} from "@/lib/graphql/message";
 
-import type { GQLJob, AuthUser } from "@/lib/graphql/types";
+import type { GQLJob, AuthUser, GQLMessage } from "@/lib/graphql/types";
 
 export default function JobDetailPage() {
   const router = useRouter();
@@ -56,7 +60,7 @@ export default function JobDetailPage() {
     timestamp: string;
     isOwnMessage: boolean;
   };
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [updateCostOpen, setUpdateCostOpen] = useState(false);
   const [newCostInput, setNewCostInput] = useState<string>(String(0));
 
@@ -75,6 +79,21 @@ export default function JobDetailPage() {
     UpdateJobStatusResp,
     UpdateJobStatusVars
   >(UPDATE_JOB_STATUS_MUTATION);
+
+  const { data: messagesData } = useQuery<{ messagesByJob: GQLMessage[] }>(
+    GET_MESSAGES_BY_JOB_QUERY,
+    {
+      variables: { jobId },
+      skip: !jobId,
+      pollInterval: 3000,
+      fetchPolicy: "network-only",
+    }
+  );
+
+  const [sendMessage] = useMutation<
+    { sendMessage: GQLMessage },
+    { input: { jobId: string; content: string; senderId: string } }
+  >(SEND_MESSAGE_MUTATION);
 
   const {
     data: jobData,
@@ -151,25 +170,33 @@ export default function JobDetailPage() {
         refetchQueries: [{ query: GET_JOB_QUERY, variables: { id: job.id } }],
         awaitRefetchQueries: true,
       });
-      // refetch will update mappedJob
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("update status failed", err);
     }
   };
 
-  const handleSendMessage = (content: string) => {
-    const newMessage = {
-      id: `m${messages.length + 1}`,
-      senderId:
-        user?.email && user.email.includes("contractor") ? "c-1" : "hw-1",
-      senderName: user?.name || "Unknown",
+  const handleSendMessage = async (content: string) => {
+    const senderId = getUserId() ?? "";
+
+    const optimistic: Message = {
+      id: `local-${Date.now()}`,
+      senderId: senderId ?? "",
+      senderName: user?.name || "You",
       content,
       timestamp: new Date().toISOString(),
       isOwnMessage: true,
     };
-    setMessages([...messages, newMessage]);
-    // TODO: GraphQL mutation to send message
+    setLocalMessages((s) => [...s, optimistic]);
+
+    try {
+      await sendMessage({
+        variables: { input: { jobId: job.id, content, senderId } },
+      });
+      setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
+    } catch (err) {
+      console.error("send message failed", err);
+      setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
+    }
   };
 
   const handleMarkComplete = () => {
@@ -231,11 +258,23 @@ export default function JobDetailPage() {
     }
   };
 
-  // Update message ownership based on current user
-  const messagesWithOwnership = messages.map((msg) => ({
-    ...msg,
-    isOwnMessage: msg.senderId === currentUserId,
-  }));
+  const fetchedMessages: Message[] = (messagesData?.messagesByJob ?? []).map(
+    (m) => ({
+      id: m.id,
+      senderId: m.senderId,
+      senderName: m.sender?.name ?? "",
+      content: m.content,
+      timestamp: m.createdAt,
+      isOwnMessage: m.senderId === currentUserId,
+    })
+  );
+
+  const combinedMessages = [...fetchedMessages, ...localMessages].map(
+    (msg) => ({
+      ...msg,
+      isOwnMessage: msg.senderId === currentUserId,
+    })
+  );
 
   return (
     <MainLayout user={layoutUser} onLogout={handleLogout}>
@@ -329,7 +368,7 @@ export default function JobDetailPage() {
               {/* Messages */}
               <Box sx={{ minHeight: 400 }}>
                 <MessageList
-                  messages={messagesWithOwnership}
+                  messages={combinedMessages}
                   currentUserId={currentUserId}
                   onSendMessage={handleSendMessage}
                 />

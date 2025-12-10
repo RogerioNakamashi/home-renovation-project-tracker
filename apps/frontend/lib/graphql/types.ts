@@ -20,6 +20,15 @@ export type GQLJob = {
   createdAt?: string | null;
 };
 
+export type GQLMessage = {
+  id: string;
+  content: string;
+  jobId: string;
+  senderId: string;
+  createdAt: string;
+  sender?: { id?: string; name?: string; email?: string } | null;
+};
+
 export type AuthUser = {
   id: string;
   email?: string;
