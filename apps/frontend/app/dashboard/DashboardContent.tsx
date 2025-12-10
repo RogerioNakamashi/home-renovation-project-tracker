@@ -75,8 +75,8 @@ export default function DashboardContent() {
 
   const jobs: Job[] = rawJobs.map((j) => ({
     id: String(j.id),
-    title: j.name ?? j.title ?? "Untitled",
-    status: (j.status ?? "planning").toString().toLowerCase() as JobStatus,
+    title: j.name,
+    status: j.status,
     homeownerName: j.homeowner?.name ?? "",
     address: j.address ?? "",
     cost: typeof j.cost === "number" ? j.cost : Number(j.cost) || 0,
@@ -168,10 +168,10 @@ export default function DashboardContent() {
 
   const stats = {
     total: jobs.length,
-    inProgress: jobs.filter((j) => j.status === "in_progress").length,
-    completed: jobs.filter((j) => j.status === "completed").length,
+    inProgress: jobs.filter((j) => j.status === "IN_PROGRESS").length,
+    completed: jobs.filter((j) => j.status === "COMPLETED").length,
     revenue: jobs
-      .filter((j) => j.status === "completed")
+      .filter((j) => j.status === "COMPLETED")
       .reduce((sum, j) => sum + j.cost, 0),
   };
 

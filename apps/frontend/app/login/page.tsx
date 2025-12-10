@@ -81,7 +81,7 @@ export default function LoginPage() {
             mb: 1,
           }}
         >
-          RenovateTrack
+          Renovation Tracker
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Sign in to manage your renovation projects

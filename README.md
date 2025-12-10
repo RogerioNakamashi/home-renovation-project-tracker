@@ -1,55 +1,42 @@
 # Home Renovation Project Tracker
 
-Monorepo configurado com Turbo Repo contendo frontend (Next.js + Apollo Client) e backend (NestJS + GraphQL + Prisma).
+Monorepo containing a Next.js frontend and a NestJS GraphQL backend (Prisma for persistence).
 
-## Stack Tecnológica
+## Overview
 
-### Frontend
+This application tracks home renovation projects (jobs). Homeowners create projects and contractors manage them — updating status and cost, and exchanging messages.
 
-- **React** - Biblioteca UI
-- **Next.js** - Framework React
-- **Apollo Client** - Cliente GraphQL
-- **TypeScript** - Tipagem estática
-- **Tailwind CSS** - Estilização
+## Tech stack (summary)
 
-### Backend
+- Frontend: Next.js, React, Apollo Client, TypeScript, MUI
+- Backend: NestJS, Apollo Server (GraphQL), Prisma, TypeScript
+- Database: MySQL (or any DB configured via `DATABASE_URL`)
 
-- **Node.js** - Runtime JavaScript
-- **NestJS** - Framework Node.js
-- **GraphQL** - API Query Language
-- **Apollo Server** - Servidor GraphQL
-- **Prisma** - ORM
-- **MySQL** - Banco de dados
-- **TypeScript** - Tipagem estática
+## Main entities
 
-## Estrutura do Projeto
+- `User` — system user with `role` (either `HOMEOWNER` or `CONTRACTOR`), `name`, `email`. Passwords are handled securely on the backend.
+- `Job` — a renovation project with fields like `id`, `title/name`, `description`, `address`, `status`, `cost`, `homeownerId`, `contractorId`, `createdAt`, `updatedAt`.
+- `Message` — chat messages attached to a `Job`.
 
-```
-.
-├── apps/
-│   ├── frontend/     # Next.js app
-│   └── backend/      # NestJS app
-├── package.json      # Root package.json
-└── turbo.json        # Configuração Turbo Repo
-```
+Entity models live in `apps/backend/prisma/schema.prisma` and business rules live in backend use-case layers.
 
-## Pré-requisitos
+## Prerequisites
 
-- Node.js >= 18.0.0
-- npm >= 9.0.0
-- MySQL (instalado e rodando)
+- Node.js >= 18
+- npm
+- MySQL (or other DB set in `DATABASE_URL`)
 
-## Configuração
+## Development quick start
 
-### 1. Instalar dependências
+1. Install dependencies from project root:
 
 ```bash
 npm install
 ```
 
-### 2. Configurar Banco de Dados
+2. Configure environment variables
 
-No diretório `apps/backend`, crie um arquivo `.env` com:
+- Backend: create `apps/backend/.env` with:
 
 ```env
 DATABASE_URL="mysql://user:password@localhost:3306/home_renovation_db"
@@ -57,7 +44,13 @@ PORT=4000
 FRONTEND_URL=http://localhost:3001
 ```
 
-### 3. Configurar Prisma
+- Frontend: create `apps/frontend/.env.local` with:
+
+```env
+NEXT_PUBLIC_GRAPHQL_URL=http://localhost:4000/graphql
+```
+
+3. Generate Prisma client and run migrations (backend):
 
 ```bash
 cd apps/backend
@@ -65,59 +58,71 @@ npm run prisma:generate
 npm run prisma:migrate
 ```
 
-### 4. Configurar Frontend
-
-No diretório `apps/frontend`, crie um arquivo `.env.local` com:
-
-```env
-NEXT_PUBLIC_GRAPHQL_URL=http://localhost:4000/graphql
-```
-
-## Scripts Disponíveis
-
-### Root (Turbo Repo)
-
-- `npm run dev` - Inicia todos os apps em modo desenvolvimento
-- `npm run build` - Builda todos os apps
-- `npm run start` - Inicia todos os apps em produção
-- `npm run lint` - Executa lint em todos os apps
-
-### Backend
-
-- `npm run dev` - Inicia servidor em modo watch
-- `npm run build` - Builda o projeto
-- `npm run start` - Inicia servidor em produção
-- `npm run prisma:generate` - Gera Prisma Client
-- `npm run prisma:migrate` - Executa migrations
-- `npm run prisma:studio` - Abre Prisma Studio
-
-### Frontend
-
-- `npm run dev` - Inicia servidor de desenvolvimento (porta 3001)
-- `npm run build` - Builda o projeto
-- `npm run start` - Inicia servidor de produção
-
-## Desenvolvimento
-
-1. Inicie o MySQL
-2. Configure as variáveis de ambiente
-3. Execute as migrations do Prisma
-4. Inicie os servidores:
+4. Start apps in development (from project root):
 
 ```bash
 npm run dev
 ```
 
+Useful URLs
+
 - Frontend: http://localhost:3001
-- Backend GraphQL: http://localhost:4000/graphql
+- GraphQL Playground: http://localhost:4000/graphql
 
-## GraphQL Playground
+## Create users (GraphQL)
 
-Acesse http://localhost:4000/graphql para usar o GraphQL Playground e testar suas queries.
+You need at least two users for the flows to work locally: one `CONTRACTOR` and one `HOMEOWNER`.
 
-## Próximos Passos
+Open the GraphQL Playground (`http://localhost:4000/graphql`) and run the `createUser` mutation. Example:
 
-1. Defina seus modelos no `apps/backend/prisma/schema.prisma`
-2. Execute `npm run prisma:migrate` para criar as tabelas
-3. Crie seus resolvers GraphQL no backend
-4. Crie seus componentes React no frontend usando Apollo Client
+```graphql
+mutation CreateContractor {
+  createUser(
+    input: {
+      email: "contractor@example.com"
+      name: "Contractor One"
+      password: "password123"
+      role: CONTRACTOR
+    }
+  ) {
+    id
+    name
+    email
+    role
+    createdAt
+  }
+}
+
+mutation CreateHomeowner {
+  createUser(
+    input: {
+      email: "homeowner@example.com"
+      name: "Homeowner One"
+      password: "password123"
+      role: HOMEOWNER
+    }
+  ) {
+    id
+    name
+    email
+    role
+    createdAt
+  }
+}
+```
+
+After creating users you can `login` (GraphQL mutation) to retrieve auth tokens, or for quick local testing populate the frontend `localStorage` with a user object (see `apps/frontend/lib/auth` for helpers).
+
+## Jobs and testing flows
+
+- As a `CONTRACTOR`: create a job (UI or `createJob` mutation) and update its `cost` and `status` from the job page.
+- Frontend GraphQL operations live in `apps/frontend/lib/graphql`.
+
+## Notes & next steps
+
+- Currently the frontend uses `refetchQueries` after updates to keep Apollo cache in sync. For improved UX we can switch to `optimisticResponse` + `cache.modify`.
+- If you want, I can add a `seed` script that creates a default `CONTRACTOR`, `HOMEOWNER`, and some sample jobs.
+
+---
+
+If you'd like a seed script or would like me to implement optimistic cache updates, tell me which and I'll add it.

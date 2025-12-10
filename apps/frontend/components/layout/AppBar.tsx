@@ -72,7 +72,7 @@ export function AppBar({ user, onLogout }: AppBarProps) {
             fontWeight: 500,
           }}
         >
-          RenovateTrack
+          Renovation Tracker
         </Typography>
 
         {user && (
