@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@apollo/client/react";
+import { useQuery, useMutation } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import {
   Box,
@@ -14,6 +14,13 @@ import {
   SelectChangeEvent,
   Paper,
 } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  DialogActions,
+} from "@mui/material";
 import { ArrowBack as ArrowBackIcon } from "@mui/icons-material";
 import { MainLayout } from "@/components/layout";
 import { JobStatus } from "@/components/ui";
@@ -24,48 +31,23 @@ import {
   JobActionsCard,
 } from "@/components/jobs";
 import { useRouter, useParams } from "next/navigation";
-import { getUser, clearAuth } from "@/lib/auth";
+import { getUser, clearAuth, getUserId } from "@/lib/auth";
 import { JOB_FRAGMENT } from "@/lib/graphql";
+import {
+  UPDATE_JOB_COST_MUTATION,
+  UPDATE_JOB_STATUS_MUTATION,
+} from "@/lib/graphql/job";
 
-type GQLJob = {
-  id: string | number;
-  name?: string;
-  title?: string;
-  status?: string;
-  description?: string;
-  address?: string;
-  cost?: number | string;
-  createdAt?: string | null;
-  updatedAt?: string | null;
-  homeowner?: { id?: string; name?: string; email?: string } | null;
-  contractor?: { id?: string; name?: string; email?: string } | null;
-};
-
-interface JobDetail {
-  id: string;
-  title: string;
-  status: JobStatus;
-  description: string;
-  address: string;
-  cost: number;
-  createdAt: string;
-  updatedAt: string;
-  homeowner: { id?: string; name: string; email: string };
-  contractor: { id?: string; name: string; email: string } | null;
-}
-
-interface User {
-  name: string;
-  email: string;
-  role: "contractor" | "homeowner";
-}
+import type { GQLJob, JobDetail, AuthUser } from "@/lib/graphql/types";
 
 export default function JobDetailPage() {
   const router = useRouter();
   const params = useParams();
   const jobId = params.id as string;
 
-  const [user, setUser] = useState<User | null>(getUser() as User | null);
+  const [user, setUser] = useState<AuthUser | null>(
+    getUser() as AuthUser | null
+  );
   const [job, setJob] = useState<JobDetail | null>(null);
   type Message = {
     id: string;
@@ -77,6 +59,8 @@ export default function JobDetailPage() {
   };
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<JobStatus>("planning");
+  const [updateCostOpen, setUpdateCostOpen] = useState(false);
+  const [newCostInput, setNewCostInput] = useState<string>(String(0));
 
   // GraphQL: fetch job by id
   const GET_JOB_QUERY = gql`
@@ -107,7 +91,7 @@ export default function JobDetailPage() {
       const mapped: JobDetail = {
         id: String(j.id),
         title: j.name ?? j.title ?? "Untitled",
-        status: (j.status ?? "planning").toString() as JobStatus,
+        status: (j.status ?? "planning").toString(),
         description: j.description ?? "",
         address: j.address ?? "",
         cost: typeof j.cost === "number" ? j.cost : Number(j.cost) || 0,
@@ -144,17 +128,45 @@ export default function JobDetailPage() {
     router.push("/login");
   };
 
-  const handleStatusChange = (event: SelectChangeEvent<JobStatus>) => {
+  const handleStatusChange = async (event: SelectChangeEvent<JobStatus>) => {
     const newStatus = event.target.value as JobStatus;
     setStatus(newStatus);
     if (job) setJob({ ...job, status: newStatus });
-    // TODO: GraphQL mutation to update status
+    try {
+      if (!job) return;
+      const enumMap: Record<string, string> = {
+        planning: "PLANNING",
+        in_progress: "IN_PROGRESS",
+        completed: "COMPLETED",
+        canceled: "CANCELED",
+      };
+      const res = await updateJobStatus({
+        variables: {
+          input: { jobId: job.id, status: enumMap[newStatus] ?? "PLANNING" },
+        },
+      });
+      if (res?.data?.updateJobStatus) {
+        const updated = res.data.updateJobStatus;
+        setJob((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: String(updated.status).toLowerCase() as JobStatus,
+              }
+            : prev
+        );
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("update status failed", err);
+    }
   };
 
   const handleSendMessage = (content: string) => {
     const newMessage = {
       id: `m${messages.length + 1}`,
-      senderId: user?.email.includes("contractor") ? "c-1" : "hw-1",
+      senderId:
+        user?.email && user.email.includes("contractor") ? "c-1" : "hw-1",
       senderName: user?.name || "Unknown",
       content,
       timestamp: new Date().toISOString(),
@@ -165,28 +177,116 @@ export default function JobDetailPage() {
   };
 
   const handleMarkComplete = () => {
-    setStatus("completed");
-    if (job) setJob({ ...job, status: "completed" });
-    // TODO: GraphQL mutation
+    // Use mutation to mark as complete
+    (async () => {
+      if (!job) return;
+      try {
+        const res = await updateJobStatus({
+          variables: { input: { jobId: job.id, status: "COMPLETED" } },
+        });
+        if (res?.data?.updateJobStatus) {
+          const updated = res.data.updateJobStatus;
+          const newStatusStr = String(updated.status).toLowerCase();
+          setStatus(newStatusStr as JobStatus);
+          setJob((prev) =>
+            prev ? { ...prev, status: newStatusStr as JobStatus } : prev
+          );
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("mark complete failed", err);
+      }
+    })();
   };
 
   const handleCancelJob = () => {
-    setStatus("canceled");
-    if (job) setJob({ ...job, status: "canceled" });
-    // TODO: GraphQL mutation
+    (async () => {
+      if (!job) return;
+      try {
+        const res = await updateJobStatus({
+          variables: { input: { jobId: job.id, status: "CANCELED" } },
+        });
+        if (res?.data?.updateJobStatus) {
+          const updated = res.data.updateJobStatus;
+          const newStatusStr = String(updated.status).toLowerCase();
+          setStatus(newStatusStr as JobStatus);
+          setJob((prev) =>
+            prev ? { ...prev, status: newStatusStr as JobStatus } : prev
+          );
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("cancel job failed", err);
+      }
+    })();
   };
 
   const handleUpdateCost = () => {
-    // TODO: Open modal to update cost
-    console.log("Update cost");
+    setNewCostInput(String(job?.cost ?? 0));
+    setUpdateCostOpen(true);
+  };
+
+  // mutations
+  type UpdateJobCostResp = { updateJobCost: GQLJob };
+  type UpdateJobCostVars = {
+    input: { jobId: string; cost: number; contractorId: string | null };
+  };
+  const [updateJobCost] = useMutation<UpdateJobCostResp, UpdateJobCostVars>(
+    UPDATE_JOB_COST_MUTATION
+  );
+
+  type UpdateJobStatusResp = { updateJobStatus: GQLJob };
+  type UpdateJobStatusVars = { input: { jobId: string; status: string } };
+  const [updateJobStatus] = useMutation<
+    UpdateJobStatusResp,
+    UpdateJobStatusVars
+  >(UPDATE_JOB_STATUS_MUTATION);
+
+  const closeUpdateCost = () => {
+    setUpdateCostOpen(false);
+    setNewCostInput(String(0));
+  };
+
+  const submitUpdateCost = async () => {
+    if (!job) return;
+    const parsed = Number(newCostInput) || 0;
+    try {
+      const contractorId = getUserId();
+      const res = await updateJobCost({
+        variables: { input: { jobId: job.id, cost: parsed, contractorId } },
+      });
+      if (res?.data?.updateJobCost) {
+        const updated = res.data.updateJobCost;
+        setJob((prev) =>
+          prev ? { ...prev, cost: Number(updated.cost) || parsed } : prev
+        );
+      }
+      closeUpdateCost();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("update cost failed", err);
+    }
   };
 
   if (!user) {
     return null;
   }
 
-  const isContractor = user.role === "contractor";
+  // normalize role (backend/localStorage may store uppercase enum values)
+  const normalizedUserRole = user?.role
+    ? String(user.role).toLowerCase().trim()
+    : null;
+  const isContractor = normalizedUserRole === "contractor";
   const currentUserId = isContractor ? "c-1" : "hw-1";
+
+  const layoutUser = user
+    ? {
+        name: user.name ?? "",
+        email: user.email ?? "",
+        role:
+          (normalizedUserRole as "contractor" | "homeowner") ?? "contractor",
+      }
+    : null;
 
   // Update message ownership based on current user
   const messagesWithOwnership = messages.map((msg) => ({
@@ -197,7 +297,7 @@ export default function JobDetailPage() {
   // Loading / error states
   if (jobLoading) {
     return (
-      <MainLayout user={user} onLogout={handleLogout}>
+      <MainLayout user={layoutUser} onLogout={handleLogout}>
         <Box sx={{ p: 4 }}>Loading job…</Box>
       </MainLayout>
     );
@@ -205,7 +305,7 @@ export default function JobDetailPage() {
 
   if (jobError) {
     return (
-      <MainLayout user={user} onLogout={handleLogout}>
+      <MainLayout user={layoutUser} onLogout={handleLogout}>
         <Box sx={{ p: 4, color: "error.main" }}>Error loading job.</Box>
       </MainLayout>
     );
@@ -216,7 +316,7 @@ export default function JobDetailPage() {
   }
 
   return (
-    <MainLayout user={user} onLogout={handleLogout}>
+    <MainLayout user={layoutUser} onLogout={handleLogout}>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {/* Back Button */}
         <Button
@@ -284,10 +384,13 @@ export default function JobDetailPage() {
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {/* Project Info */}
               <ProjectInfo
-                description={job.description}
-                address={job.address}
-                createdAt={job.createdAt}
-                homeowner={job.homeowner}
+                description={job.description ?? ""}
+                address={job.address ?? ""}
+                createdAt={job.createdAt ?? ""}
+                homeowner={{
+                  name: job.homeowner?.name ?? "",
+                  email: job.homeowner?.email ?? "",
+                }}
               />
 
               {/* Messages */}
@@ -306,10 +409,36 @@ export default function JobDetailPage() {
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {/* Project Cost */}
               <ProjectCostCard
-                cost={job.cost}
+                cost={Number(job.cost ?? 0)}
                 onUpdateCost={handleUpdateCost}
                 canEdit={isContractor}
               />
+
+              {/* Update Cost Dialog */}
+              <Dialog
+                open={updateCostOpen}
+                onClose={closeUpdateCost}
+                fullWidth
+                maxWidth="xs"
+              >
+                <DialogTitle>Update Project Cost</DialogTitle>
+                <DialogContent>
+                  <TextField
+                    label="Cost"
+                    value={newCostInput}
+                    onChange={(e) => setNewCostInput(e.target.value)}
+                    type="number"
+                    fullWidth
+                    inputProps={{ min: 0 }}
+                  />
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={closeUpdateCost}>Cancel</Button>
+                  <Button variant="contained" onClick={submitUpdateCost}>
+                    Save
+                  </Button>
+                </DialogActions>
+              </Dialog>
 
               {/* Actions */}
               <JobActionsCard

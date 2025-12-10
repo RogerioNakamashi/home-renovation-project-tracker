@@ -53,3 +53,30 @@ export const GET_JOBS_BY_HOMEOWNER_QUERY = gql`
     }
   }
 `;
+
+export const CREATE_JOB_MUTATION = gql`
+  ${JOB_FRAGMENT}
+  mutation CreateJob($input: CreateJobInput!) {
+    createJob(input: $input) {
+      ...JobFields
+    }
+  }
+`;
+
+export const UPDATE_JOB_COST_MUTATION = gql`
+  ${JOB_FRAGMENT}
+  mutation UpdateJobCost($input: UpdateJobCostInput!) {
+    updateJobCost(input: $input) {
+      ...JobFields
+    }
+  }
+`;
+
+export const UPDATE_JOB_STATUS_MUTATION = gql`
+  ${JOB_FRAGMENT}
+  mutation UpdateJobStatus($input: UpdateJobStatusInput!) {
+    updateJobStatus(input: $input) {
+      ...JobFields
+    }
+  }
+`;
