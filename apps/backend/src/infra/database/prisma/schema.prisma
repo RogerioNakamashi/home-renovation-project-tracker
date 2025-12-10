@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  HOMEOWNER
+  CONTRACTOR
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @default("")
+  role         UserRole
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relações reversas (necessárias pelo Prisma quando há múltiplas FK para mesma tabela)
+  jobsAsContractor Job[]          @relation("ContractorJobs")
+  jobsAsHomeowner  Job[]          @relation("HomeownerJobs")
+  sentMessages     Message[]      @relation("SentMessages")
+  refreshTokens    RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+enum JobStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+model Job {
+  id           String    @id @default(uuid())
+  name         String
+  description  String
+  address      String
+  status       JobStatus @default(PLANNING)
+  cost         Float     @default(0)
+  contractorId String
+  homeownerId  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  contractor User      @relation("ContractorJobs", fields: [contractorId], references: [id])
+  homeowner  User      @relation("HomeownerJobs", fields: [homeownerId], references: [id])
+  messages   Message[]
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  jobId     String
+  senderId  String
+  createdAt DateTime @default(now())
+
+  job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sender User @relation("SentMessages", fields: [senderId], references: [id])
+}
