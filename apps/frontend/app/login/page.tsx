@@ -4,44 +4,62 @@ import { Box, Typography } from "@mui/material";
 import { LoginForm } from "@/components/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useMutation } from "@apollo/client/react";
+import { LOGIN_MUTATION } from "@/lib/graphql";
+import { saveTokens, saveUser, AuthUser } from "@/lib/auth";
+
+interface LoginResponse {
+  login: {
+    accessToken: string;
+    refreshToken: string;
+    user: AuthUser;
+  };
+}
+
+interface LoginVariables {
+  input: {
+    email: string;
+    password: string;
+  };
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (email: string, password: string) => {
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      // TODO: Implement actual GraphQL login mutation
-      // For now, simulate login
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock validation
-      if (!email.includes("@")) {
-        throw new Error("Invalid email address");
-      }
-
-      // Store token (mock)
-      localStorage.setItem("token", "mock-jwt-token");
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: email.includes("mike") ? "Mike Johnson" : "Sarah Williams",
-          email,
-          role: email.includes("contractor") ? "contractor" : "homeowner",
-        })
-      );
+  const [loginMutation, { loading: isLoading }] = useMutation<
+    LoginResponse,
+    LoginVariables
+  >(LOGIN_MUTATION, {
+    onCompleted: (data) => {
+      console.log("Login successful:", data);
+      // Save tokens and user data
+      saveTokens({
+        accessToken: data.login.accessToken,
+        refreshToken: data.login.refreshToken,
+      });
+      saveUser(data.login.user);
 
       // Redirect to dashboard
       router.push("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setIsLoading(false);
-    }
+    },
+    onError: (error) => {
+      console.error("Login error:", error);
+      setError(error.message || "Login failed. Please try again.");
+    },
+  });
+
+  const handleLogin = async (email: string, password: string) => {
+    setError(null);
+
+    await loginMutation({
+      variables: {
+        input: {
+          email,
+          password,
+        },
+      },
+    });
   };
 
   return (
