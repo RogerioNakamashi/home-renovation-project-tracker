@@ -3,6 +3,7 @@
 const ACCESS_TOKEN_KEY = "home_renovation_access_token";
 const REFRESH_TOKEN_KEY = "home_renovation_refresh_token";
 const USER_KEY = "home_renovation_user";
+const USER_ID_KEY = "home_renovation_user_id";
 
 export interface AuthUser {
   id: string;
@@ -49,6 +50,13 @@ export const getRefreshToken = (): string | null => {
 export const saveUser = (user: AuthUser): void => {
   if (typeof window === "undefined") return;
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  try {
+    if (user && user.id) {
+      localStorage.setItem(USER_ID_KEY, user.id);
+    }
+  } catch {
+    // ignore localStorage set errors
+  }
 };
 
 /**
@@ -73,6 +81,15 @@ export const clearAuth = (): void => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(USER_ID_KEY);
+};
+
+/**
+ * Get the stored user id from localStorage
+ */
+export const getUserId = (): string | null => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(USER_ID_KEY);
 };
 
 /**

@@ -22,6 +22,7 @@ import {
   JobActionsCard,
 } from "@/components/jobs";
 import { useRouter, useParams } from "next/navigation";
+import { getUser, clearAuth } from "@/lib/auth";
 
 // Mock data - will be replaced with GraphQL queries
 const mockJobDetail = {
@@ -86,24 +87,21 @@ export default function JobDetailPage() {
   const params = useParams();
   const jobId = params.id as string;
 
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(getUser() as User | null);
   const [job, setJob] = useState(mockJobDetail);
   const [messages, setMessages] = useState(mockMessages);
   const [status, setStatus] = useState<JobStatus>(job.status);
 
   useEffect(() => {
-    // Get user from localStorage (mock auth)
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      // setUser(JSON.parse(storedUser));
-    } else {
+    if (!user) {
+      clearAuth();
       router.push("/login");
     }
-  }, [router]);
+    console.log("User:", user);
+  }, [user, router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuth();
     router.push("/login");
   };
 

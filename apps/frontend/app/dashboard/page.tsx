@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@apollo/client/react";
 import {
   Box,
   Typography,
@@ -15,60 +16,85 @@ import { Add as AddIcon } from "@mui/icons-material";
 import { MainLayout } from "@/components/layout";
 import { StatsCard, JobCard, Job, JobStatus } from "@/components/ui";
 import { useRouter } from "next/navigation";
+import { GET_USER_WITH_JOBS_QUERY } from "@/lib/graphql";
+import { getUserId, getUser } from "@/lib/auth";
 
-// Mock data - will be replaced with GraphQL queries
-const mockJobs: Job[] = [
-  {
-    id: "1",
-    title: "Kitchen Remodel",
-    status: "in_progress",
-    homeownerName: "Sarah Williams",
-    address: "123 Main Street, Springfield, IL 62701",
-    cost: 45000,
-    updatedAt: "2025-12-08",
-  },
-  {
-    id: "2",
-    title: "Bathroom Renovation",
-    status: "planning",
-    homeownerName: "David Chen",
-    address: "456 Oak Avenue, Springfield, IL 62702",
-    cost: 28000,
-    updatedAt: "2025-12-05",
-  },
-  {
-    id: "3",
-    title: "Basement Finishing",
-    status: "completed",
-    homeownerName: "Emily Rodriguez",
-    address: "789 Elm Street, Springfield, IL 62703",
-    cost: 62000,
-    updatedAt: "2025-11-30",
-  },
-  {
-    id: "4",
-    title: "Deck Addition",
-    status: "in_progress",
-    homeownerName: "Sarah Williams",
-    address: "321 Pine Road, Springfield, IL 62704",
-    cost: 18500,
-    updatedAt: "2025-12-09",
-  },
-];
-
-// Mock user - will be replaced with auth integration
-const mockUser = {
-  name: "Mike Johnson",
-  email: "mike@contractor.com",
-  role: "contractor" as const,
-};
+// Data comes from backend via GraphQL query
 
 type FilterStatus = "all" | JobStatus;
 
+// minimal GraphQL result types for this query
+type GQLUser = {
+  id: string;
+  name?: string;
+  role?: string;
+  email?: string;
+};
+
+type GQLJob = {
+  id: string | number;
+  name?: string;
+  title?: string;
+  status?: string;
+  homeowner?: { name?: string } | null;
+  address?: string;
+  cost?: number | string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
-  const [jobs] = useState<Job[]>(mockJobs);
+
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+
+  const storedUser = getUser();
+  const userId = getUserId();
+  console.log("User ID:", userId);
+
+  const { data, loading, error } = useQuery<{
+    user?: GQLUser;
+    jobsByContractor?: GQLJob[];
+    jobsByHomeowner?: GQLJob[];
+  }>(GET_USER_WITH_JOBS_QUERY, {
+    variables: { id: userId },
+    skip: !userId,
+    fetchPolicy: "cache-and-network",
+  });
+
+  const apiUser = data?.user ?? storedUser ?? null;
+
+  // pick the correct job list depending on role
+  const rawJobs: GQLJob[] = (() => {
+    if (!data) return [];
+    if (apiUser?.role === "contractor") return data?.jobsByContractor ?? [];
+    if (apiUser?.role === "homeowner") return data?.jobsByHomeowner ?? [];
+    // fallback: merge both lists
+    return [
+      ...(data?.jobsByContractor ?? []),
+      ...(data?.jobsByHomeowner ?? []),
+    ];
+  })();
+
+  // map backend JobType -> UI Job shape
+  const jobs: Job[] = rawJobs.map((j) => ({
+    id: String(j.id),
+    title: j.name ?? j.title ?? "Untitled",
+    status: (j.status ?? "planning").toString().toLowerCase() as JobStatus,
+    homeownerName: j.homeowner?.name ?? "",
+    address: j.address ?? "",
+    cost: typeof j.cost === "number" ? j.cost : Number(j.cost) || 0,
+    updatedAt: j.updatedAt ?? j.createdAt ?? "",
+  }));
+
+  // normalize apiUser to the UI User shape expected by MainLayout
+  const layoutUser = apiUser
+    ? {
+        name: apiUser.name ?? "",
+        email: apiUser.email ?? "",
+        role: (apiUser.role as "contractor" | "homeowner") ?? "contractor",
+      }
+    : null;
 
   const handleLogout = () => {
     router.push("/login");
@@ -102,12 +128,12 @@ export default function DashboardPage() {
       .reduce((sum, j) => sum + j.cost, 0),
   };
 
-  if (!mockUser) {
+  if (!apiUser) {
     return null;
   }
 
   return (
-    <MainLayout user={mockUser} onLogout={handleLogout}>
+    <MainLayout user={layoutUser} onLogout={handleLogout}>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {/* Header */}
         <Box
@@ -125,13 +151,13 @@ export default function DashboardPage() {
                 color: "text.primary",
               }}
             >
-              Welcome back, {mockUser.name}
+              Welcome back, {apiUser.name}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
               Manage your renovation projects
             </Typography>
           </Box>
-          {mockUser.role === "contractor" && (
+          {apiUser.role === "contractor" && (
             <Button
               variant="contained"
               startIcon={<AddIcon />}

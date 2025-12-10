@@ -96,3 +96,48 @@ export const GET_CONTRACTORS_QUERY = gql`
     }
   }
 `;
+
+// ============ Combined User + Jobs Query ============
+// Fetch the user and both possible job lists (by contractor and by homeowner)
+// Client can pick which job list to use based on the user's role
+export const GET_USER_WITH_JOBS_QUERY = gql`
+  ${USER_FRAGMENT}
+  ${/* JOB_FRAGMENT is defined in lib/graphql/job.ts */ ""}
+  ${/* inline JOB_FRAGMENT to avoid cross-file import in the template */ ""}
+  fragment JobFields on JobType {
+    id
+    name
+    description
+    address
+    status
+    cost
+    contractorId
+    homeownerId
+    createdAt
+    updatedAt
+    contractor {
+      id
+      name
+      email
+      role
+    }
+    homeowner {
+      id
+      name
+      email
+      role
+    }
+  }
+
+  query GetUserWithJobs($id: ID!) {
+    user(id: $id) {
+      ...UserFields
+    }
+    jobsByContractor(contractorId: $id) {
+      ...JobFields
+    }
+    jobsByHomeowner(homeownerId: $id) {
+      ...JobFields
+    }
+  }
+`;

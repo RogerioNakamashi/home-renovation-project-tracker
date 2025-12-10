@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMutation } from "@apollo/client/react";
 import { LOGIN_MUTATION } from "@/lib/graphql";
-import { saveTokens, saveUser, AuthUser } from "@/lib/auth";
+import { saveUser, AuthUser } from "@/lib/auth";
 
 interface LoginResponse {
   login: {
@@ -33,11 +33,7 @@ export default function LoginPage() {
   >(LOGIN_MUTATION, {
     onCompleted: (data) => {
       console.log("Login successful:", data);
-      // Save tokens and user data
-      saveTokens({
-        accessToken: data.login.accessToken,
-        refreshToken: data.login.refreshToken,
-      });
+      // Backend should set httpOnly cookies for tokens; store only non-sensitive user info
       saveUser(data.login.user);
 
       // Redirect to dashboard
