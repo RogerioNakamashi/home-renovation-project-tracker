@@ -373,34 +373,28 @@ export default function JobDetailPage() {
               {job.name}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              {isContractor ? (
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <Select
-                    value={job.status}
-                    onChange={handleStatusChange}
-                    sx={{
-                      bgcolor: "background.paper",
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "divider",
-                      },
-                    }}
-                  >
-                    <MenuItem value="PLANNING">Planning</MenuItem>
-                    <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
-                    <MenuItem value="COMPLETED">Completed</MenuItem>
-                    <MenuItem value="CANCELED">Canceled</MenuItem>
-                  </Select>
-                </FormControl>
-              ) : (
-                <Box
-                  sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <Select
+                  disabled={
+                    job.status === "COMPLETED" ||
+                    job.status === "CANCELED" ||
+                    !isContractor
+                  }
+                  value={job.status}
+                  onChange={handleStatusChange}
+                  sx={{
+                    bgcolor: "background.paper",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "divider",
+                    },
+                  }}
                 >
-                  <Typography variant="body2" color="text.secondary">
-                    Status
-                  </Typography>
-                  <Typography variant="body1">{status}</Typography>
-                </Box>
-              )}
+                  <MenuItem value="PLANNING">Planning</MenuItem>
+                  <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+                  <MenuItem value="COMPLETED">Completed</MenuItem>
+                  <MenuItem value="CANCELED">Canceled</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
           </Box>
         </Paper>
@@ -446,9 +440,9 @@ export default function JobDetailPage() {
                         >
                           <Radio
                             checked={s.status === "COMPLETED"}
-                            disabled={s.status === "COMPLETED"}
+                            disabled={s.status === "COMPLETED" || !isContractor}
                             onChange={() => {
-                              if (s.status !== "COMPLETED") {
+                              if (s.status !== "COMPLETED" && isContractor) {
                                 handleCompleteSubtask(s.id);
                               }
                             }}
