@@ -10,7 +10,7 @@ This application tracks home renovation projects (jobs). Homeowners create proje
 
 - Frontend: Next.js, React, Apollo Client, TypeScript, MUI
 - Backend: NestJS, Apollo Server (GraphQL), Prisma, TypeScript
-- Database: MySQL (or any DB configured via `DATABASE_URL`)
+- Database: MySQL
 
 ## Main entities
 
@@ -22,9 +22,8 @@ Entity models live in `apps/backend/prisma/schema.prisma` and business rules liv
 
 ## Prerequisites
 
-- Node.js >= 18
+- Node.js >= 20
 - npm
-- MySQL (or other DB set in `DATABASE_URL`)
 
 ## Development quick start
 
@@ -34,23 +33,7 @@ Entity models live in `apps/backend/prisma/schema.prisma` and business rules liv
 npm install
 ```
 
-2. Configure environment variables
-
-- Backend: create `apps/backend/.env` with:
-
-```env
-DATABASE_URL="mysql://user:password@localhost:3306/home_renovation_db"
-PORT=4000
-FRONTEND_URL=http://localhost:3001
-```
-
-- Frontend: create `apps/frontend/.env.local` with:
-
-```env
-NEXT_PUBLIC_GRAPHQL_URL=http://localhost:4000/graphql
-```
-
-3. Generate Prisma client and run migrations (backend):
+2. Generate Prisma client and run migrations (backend):
 
 ```bash
 cd apps/backend
@@ -58,7 +41,7 @@ npm run prisma:generate
 npm run prisma:migrate
 ```
 
-4. Start apps in development (from project root):
+3. Start apps in development (from project root):
 
 ```bash
 npm run dev
@@ -115,14 +98,5 @@ After creating users you can `login` (GraphQL mutation) to retrieve auth tokens,
 
 ## Jobs and testing flows
 
-- As a `CONTRACTOR`: create a job (UI or `createJob` mutation) and update its `cost` and `status` from the job page.
+- As a `CONTRACTOR`: create a job and update its `cost` and `status` from the job page.
 - Frontend GraphQL operations live in `apps/frontend/lib/graphql`.
-
-## Notes & next steps
-
-- Currently the frontend uses `refetchQueries` after updates to keep Apollo cache in sync. For improved UX we can switch to `optimisticResponse` + `cache.modify`.
-- If you want, I can add a `seed` script that creates a default `CONTRACTOR`, `HOMEOWNER`, and some sample jobs.
-
----
-
-If you'd like a seed script or would like me to implement optimistic cache updates, tell me which and I'll add it.

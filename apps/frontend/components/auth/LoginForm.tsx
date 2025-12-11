@@ -166,58 +166,6 @@ export function LoginForm({
               )}
             </Button>
           </Box>
-
-          {/* Demo Accounts Section */}
-          <Box
-            sx={{
-              mt: 4,
-              pt: 3,
-              borderTop: 1,
-              borderColor: "divider",
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                textAlign: "center",
-                color: "text.secondary",
-                mb: 2,
-              }}
-            >
-              Demo Accounts:
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              {demoAccounts.map((account) => (
-                <Box
-                  key={account.email}
-                  onClick={() => handleDemoLogin(account.email)}
-                  sx={{
-                    p: 1.5,
-                    bgcolor: "grey.50",
-                    borderRadius: 2,
-                    cursor: "pointer",
-                    "&:hover": {
-                      bgcolor: "grey.100",
-                    },
-                  }}
-                >
-                  <Typography variant="caption" component="span">
-                    <strong>{account.role}:</strong> {account.email}
-                  </Typography>
-                </Box>
-              ))}
-              <Typography
-                variant="caption"
-                sx={{
-                  textAlign: "center",
-                  color: "text.secondary",
-                  mt: 1,
-                }}
-              >
-                Password: any value
-              </Typography>
-            </Box>
-          </Box>
         </CardContent>
       </Card>
     </Box>

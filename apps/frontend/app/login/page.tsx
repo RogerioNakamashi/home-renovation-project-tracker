@@ -84,7 +84,7 @@ export default function LoginPage() {
           Renovation Tracker
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Sign in to manage your renovation projects
+          Sign in to manage your projects
         </Typography>
       </Box>
 
@@ -100,7 +100,7 @@ export default function LoginPage() {
           textAlign: "center",
         }}
       >
-        Secure project management for contractors and homeowners
+        AI powered project management for contractors and homeowners
       </Typography>
     </Box>
   );
