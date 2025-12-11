@@ -6,6 +6,7 @@ import {
   registerEnumType,
 } from '@nestjs/graphql';
 import { UserType } from './user.type';
+import { SubtaskType } from './subtask.type';
 
 export enum JobStatusEnum {
   PLANNING = 'PLANNING',
@@ -50,6 +51,9 @@ export class JobType {
 
   @Field(() => UserType, { nullable: true })
   homeowner?: UserType;
+
+  @Field(() => [SubtaskType], { nullable: true })
+  subtasks?: SubtaskType[];
 
   @Field()
   createdAt: Date;

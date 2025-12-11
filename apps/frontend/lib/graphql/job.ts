@@ -24,6 +24,13 @@ export const JOB_FRAGMENT = gql`
       email
       role
     }
+    subtasks {
+      id
+      description
+      deadline
+      cost
+      status
+    }
   }
 `;
 
@@ -86,6 +93,21 @@ export const UPDATE_JOB_STATUS_MUTATION = gql`
   mutation UpdateJobStatus($input: UpdateJobStatusInput!) {
     updateJobStatus(input: $input) {
       ...JobFields
+    }
+  }
+`;
+
+export const COMPLETE_SUBTASK_MUTATION = gql`
+  mutation CompleteSubtask($subtaskId: ID!) {
+    completeSubtask(subtaskId: $subtaskId) {
+      id
+      jobId
+      description
+      deadline
+      cost
+      status
+      createdAt
+      updatedAt
     }
   }
 `;

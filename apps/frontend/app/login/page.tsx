@@ -32,7 +32,6 @@ export default function LoginPage() {
     LoginVariables
   >(LOGIN_MUTATION, {
     onCompleted: (data) => {
-      console.log("Login successful:", data);
       // Backend should set httpOnly cookies for tokens; store only non-sensitive user info
       saveUser(data.login.user);
 

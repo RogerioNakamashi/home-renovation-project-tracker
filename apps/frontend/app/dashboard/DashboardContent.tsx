@@ -110,6 +110,9 @@ export default function DashboardContent() {
   const [address, setAddress] = useState("");
   const [homeownerId, setHomeownerId] = useState<string | null>(null);
   const [costInput, setCostInput] = useState<string>("");
+  const [subtasks, setSubtasks] = useState<
+    Array<{ description: string; deadline?: string; cost?: string }>
+  >([]);
 
   // fetch homeowners for selection
   const { data: homeownersData, loading: homeownersLoading } = useQuery<{
@@ -130,6 +133,7 @@ export default function DashboardContent() {
     setAddress("");
     setHomeownerId(null);
     setCostInput("");
+    setSubtasks([]);
   };
 
   const handleSubmitCreate = async () => {
@@ -137,6 +141,14 @@ export default function DashboardContent() {
     const parsedCost = Number(costInput) || 0;
 
     try {
+      const mappedSubtasks = subtasks
+        .map((s) => ({
+          description: s.description?.trim() ?? "",
+          deadline: s.deadline ? new Date(s.deadline).toISOString() : undefined,
+          cost: s.cost ? Number(s.cost) : undefined,
+        }))
+        .filter((s) => s.description);
+
       await createJob({
         variables: {
           input: {
@@ -146,13 +158,13 @@ export default function DashboardContent() {
             contractorId: userId,
             homeownerId: homeownerId ?? userId,
             cost: parsedCost,
+            subtasks: mappedSubtasks,
           },
         },
       });
 
       closeCreate();
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("create job failed", err);
     }
   };
@@ -354,6 +366,159 @@ export default function DashboardContent() {
                 type="number"
                 inputProps={{ min: 0 }}
               />
+
+              {/* Subtasks */}
+              <Box sx={{ mt: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="subtitle1">Subtasks</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Break down the project into smaller tasks
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() =>
+                      setSubtasks((prev) => [
+                        ...prev,
+                        { description: "", deadline: "", cost: "" },
+                      ])
+                    }
+                    sx={{ backgroundColor: "#00A862", color: "#fff" }}
+                    size="small"
+                  >
+                    Add Subtask
+                  </Button>
+                </Box>
+
+                {subtasks.length === 0 ? (
+                  <Box
+                    sx={{
+                      bgcolor: "#F9FAFB",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: 1,
+                      p: 2,
+                    }}
+                  >
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      No subtasks added yet
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Click &quot;Add Subtask&quot; to break down this project
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                  >
+                    {subtasks.map((s, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          border: "1px solid #E5E7EB",
+                          borderRadius: 1,
+                          p: 2,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            mb: 1,
+                          }}
+                        >
+                          <Typography variant="subtitle2">
+                            Subtask {idx + 1}
+                          </Typography>
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              setSubtasks((prev) =>
+                                prev.filter((_, i) => i !== idx)
+                              )
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                          }}
+                        >
+                          <TextField
+                            label="Description"
+                            value={s.description}
+                            onChange={(e) =>
+                              setSubtasks((prev) => {
+                                const copy = [...prev];
+                                copy[idx] = {
+                                  ...copy[idx],
+                                  description: e.target.value,
+                                };
+                                return copy;
+                              })
+                            }
+                            fullWidth
+                            multiline
+                            minRows={2}
+                          />
+
+                          <Box sx={{ display: "flex", gap: 2 }}>
+                            <TextField
+                              label="Deadline"
+                              type="date"
+                              value={s.deadline ?? ""}
+                              onChange={(e) =>
+                                setSubtasks((prev) => {
+                                  const copy = [...prev];
+                                  copy[idx] = {
+                                    ...copy[idx],
+                                    deadline: e.target.value,
+                                  };
+                                  return copy;
+                                })
+                              }
+                              InputLabelProps={{ shrink: true }}
+                              sx={{ width: 200 }}
+                            />
+
+                            <TextField
+                              label="Cost"
+                              type="number"
+                              value={s.cost ?? ""}
+                              onChange={(e) =>
+                                setSubtasks((prev) => {
+                                  const copy = [...prev];
+                                  copy[idx] = {
+                                    ...copy[idx],
+                                    cost: e.target.value,
+                                  };
+                                  return copy;
+                                })
+                              }
+                              sx={{ width: 160 }}
+                              inputProps={{ min: 0 }}
+                            />
+                          </Box>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Box>
             </Box>
           </DialogContent>
           <DialogActions>

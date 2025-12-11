@@ -12,7 +12,10 @@ import { UpdateJobCostUseCase } from '../../core/use-cases/job/update-job-cost.u
 import { UpdateJobStatusUseCase } from '../../core/use-cases/job/update-job-status.use-case';
 import { DeleteJobUseCase } from '../../core/use-cases/job/delete-job.use-case';
 import { UserModule } from '../user/user.module';
-import { CreateSubtaskUseCase } from '../../core/use-cases/subtask';
+import {
+  CreateSubtaskUseCase,
+  CompleteSubtaskUseCase,
+} from '../../core/use-cases/subtask';
 
 @Module({
   imports: [UserModule],
@@ -22,6 +25,7 @@ import { CreateSubtaskUseCase } from '../../core/use-cases/subtask';
     SubtaskRepository,
     CreateJobUseCase,
     CreateSubtaskUseCase,
+    CompleteSubtaskUseCase,
     FindAllJobsUseCase,
     FindJobByIdUseCase,
     FindJobsByContractorUseCase,

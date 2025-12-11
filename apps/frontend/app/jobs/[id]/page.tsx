@@ -12,6 +12,8 @@ import {
   MenuItem,
   SelectChangeEvent,
   Paper,
+  Chip,
+  Radio,
 } from "@mui/material";
 import {
   Dialog,
@@ -35,22 +37,26 @@ import {
   GET_JOB_QUERY,
   UPDATE_JOB_COST_MUTATION,
   UPDATE_JOB_STATUS_MUTATION,
+  COMPLETE_SUBTASK_MUTATION,
 } from "@/lib/graphql/job";
 import {
   GET_MESSAGES_BY_JOB_QUERY,
   SEND_MESSAGE_MUTATION,
 } from "@/lib/graphql/message";
 
-import type { GQLJob, AuthUser, GQLMessage } from "@/lib/graphql/types";
+import type {
+  GQLJob,
+  AuthUser,
+  GQLMessage,
+  GQLSubtask,
+} from "@/lib/graphql/types";
 
 export default function JobDetailPage() {
   const router = useRouter();
   const params = useParams();
   const jobId = params.id as string;
 
-  const [user, setUser] = useState<AuthUser | null>(
-    getUser() as AuthUser | null
-  );
+  const [user] = useState<AuthUser | null>(getUser() as AuthUser | null);
   // derive job from query result (avoid duplicating cache state)
   type Message = {
     id: string;
@@ -79,6 +85,11 @@ export default function JobDetailPage() {
     UpdateJobStatusResp,
     UpdateJobStatusVars
   >(UPDATE_JOB_STATUS_MUTATION);
+
+  const [completeSubtask] = useMutation<
+    { completeSubtask: GQLSubtask },
+    { subtaskId: string }
+  >(COMPLETE_SUBTASK_MUTATION);
 
   const { data: messagesData } = useQuery<{ messagesByJob: GQLMessage[] }>(
     GET_MESSAGES_BY_JOB_QUERY,
@@ -154,10 +165,10 @@ export default function JobDetailPage() {
   }
 
   const job = jobData.job;
+  const subtasks: GQLSubtask[] = (job.subtasks ?? []) as GQLSubtask[];
 
   const handleStatusChange = async (event: SelectChangeEvent<JobStatus>) => {
     const newStatus = event.target.value as JobStatus;
-    console.log({ newStatus });
     try {
       if (!jobData.job) return;
       await updateJobStatus({
@@ -248,6 +259,18 @@ export default function JobDetailPage() {
     })();
   };
 
+  const handleCompleteSubtask = async (subtaskId: string) => {
+    try {
+      await completeSubtask({
+        variables: { subtaskId },
+        refetchQueries: [{ query: GET_JOB_QUERY, variables: { id: job.id } }],
+        awaitRefetchQueries: true,
+      });
+    } catch (err) {
+      console.error("complete subtask failed", err);
+    }
+  };
+
   const handleCancelJob = () => {
     (async () => {
       try {
@@ -308,8 +331,6 @@ export default function JobDetailPage() {
       isOwnMessage: msg.senderId === currentUserId,
     })
   );
-
-  console.log({ combinedMessages });
 
   return (
     <MainLayout user={layoutUser} onLogout={handleLogout}>
@@ -399,6 +420,95 @@ export default function JobDetailPage() {
                   email: job.homeowner?.email ?? "",
                 }}
               />
+
+              {/* Subtasks (from backend) */}
+              <Box>
+                <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                  Subtasks
+                </Typography>
+                {subtasks.length > 0 ? (
+                  <Box sx={{ display: "grid", gap: 2 }}>
+                    {subtasks.map((s: GQLSubtask) => (
+                      <Paper
+                        key={s.id}
+                        sx={{
+                          p: 2,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          border: 1,
+                          borderColor: "divider",
+                        }}
+                        elevation={0}
+                      >
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                        >
+                          <Radio
+                            checked={s.status === "COMPLETED"}
+                            disabled={s.status === "COMPLETED"}
+                            onChange={() => {
+                              if (s.status !== "COMPLETED") {
+                                handleCompleteSubtask(s.id);
+                              }
+                            }}
+                            value={s.id}
+                            inputProps={{
+                              "aria-label": `complete-subtask-${s.id}`,
+                            }}
+                          />
+                          <Box>
+                            <Typography sx={{ fontWeight: 500 }}>
+                              {s.description}
+                            </Typography>
+                            <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {s.deadline
+                                  ? new Date(s.deadline).toLocaleDateString()
+                                  : "No deadline"}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {s.cost ? `$${s.cost}` : ""}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label={
+                            s.status
+                              ? s.status.charAt(0) +
+                                s.status.slice(1).toLowerCase()
+                              : "Pending"
+                          }
+                          color={
+                            s.status === "COMPLETED"
+                              ? "success"
+                              : s.status === "PENDING"
+                                ? "warning"
+                                : "default"
+                          }
+                          size="small"
+                        />
+                      </Paper>
+                    ))}
+                  </Box>
+                ) : (
+                  <Paper
+                    sx={{ p: 2, border: 1, borderColor: "divider" }}
+                    elevation={0}
+                  >
+                    <Typography color="text.secondary">
+                      No subtasks added yet
+                    </Typography>
+                  </Paper>
+                )}
+              </Box>
 
               {/* Messages */}
               <Box sx={{ minHeight: 400 }}>
