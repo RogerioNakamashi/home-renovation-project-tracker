@@ -10,7 +10,7 @@ This application tracks home renovation projects (jobs). Homeowners create proje
 
 - Frontend: Next.js, React, Apollo Client, TypeScript, MUI
 - Backend: NestJS, Apollo Server (GraphQL), Prisma, TypeScript
-- Database: MySQL
+- Database: SQLite
 
 ## Main entities
 
