@@ -47,7 +47,7 @@ export function JobActionsCard({
               },
             }}
           >
-            Mark as Complete
+            Mark as Completed
           </Button>
         )}
         {!isCompleted && !isCanceled && (

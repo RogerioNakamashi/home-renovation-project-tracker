@@ -6,6 +6,7 @@ import {
   IsNumber,
   Min,
 } from 'class-validator';
+import { CreateSubtaskInput } from './create-subtask.input';
 
 @InputType()
 export class CreateJobInput {
@@ -37,4 +38,8 @@ export class CreateJobInput {
   @IsNumber()
   @Min(0)
   cost?: number;
+
+  @Field(() => [CreateSubtaskInput], { nullable: true })
+  @IsOptional()
+  subtasks?: CreateSubtaskInput[];
 }

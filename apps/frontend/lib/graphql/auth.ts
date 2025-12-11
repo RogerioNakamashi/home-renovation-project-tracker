@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { JOB_FRAGMENT } from "./job";
 
 // ============ Fragments ============
 
@@ -102,32 +103,7 @@ export const GET_CONTRACTORS_QUERY = gql`
 // Client can pick which job list to use based on the user's role
 export const GET_USER_WITH_JOBS_QUERY = gql`
   ${USER_FRAGMENT}
-  ${/* JOB_FRAGMENT is defined in lib/graphql/job.ts */ ""}
-  ${/* inline JOB_FRAGMENT to avoid cross-file import in the template */ ""}
-  fragment JobFields on JobType {
-    id
-    name
-    description
-    address
-    status
-    cost
-    contractorId
-    homeownerId
-    createdAt
-    updatedAt
-    contractor {
-      id
-      name
-      email
-      role
-    }
-    homeowner {
-      id
-      name
-      email
-      role
-    }
-  }
+  ${JOB_FRAGMENT}
 
   query GetUserWithJobs($id: ID!) {
     user(id: $id) {

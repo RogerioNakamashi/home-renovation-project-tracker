@@ -32,7 +32,6 @@ export default function LoginPage() {
     LoginVariables
   >(LOGIN_MUTATION, {
     onCompleted: (data) => {
-      console.log("Login successful:", data);
       // Backend should set httpOnly cookies for tokens; store only non-sensitive user info
       saveUser(data.login.user);
 
@@ -40,7 +39,7 @@ export default function LoginPage() {
       router.push("/dashboard");
     },
     onError: (error) => {
-      console.error("Login error:", error);
+      console.log("Login error:", error);
       setError(error.message || "Login failed. Please try again.");
     },
   });
@@ -84,7 +83,7 @@ export default function LoginPage() {
           Renovation Tracker
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Sign in to manage your renovation projects
+          Sign in to manage your projects
         </Typography>
       </Box>
 
@@ -100,7 +99,7 @@ export default function LoginPage() {
           textAlign: "center",
         }}
       >
-        Secure project management for contractors and homeowners
+        AI powered project management for contractors and homeowners
       </Typography>
     </Box>
   );

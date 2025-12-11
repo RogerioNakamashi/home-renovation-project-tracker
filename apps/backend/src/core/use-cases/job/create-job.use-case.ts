@@ -6,6 +6,7 @@ import {
 import { JobEntity, JobStatus } from '../../entities/job.entity';
 import { JobRepository } from '../../repositories/job.repository';
 import { UserRepository } from '../../repositories/user.repository';
+import { CreateSubtaskUseCase } from '../../use-cases/subtask/create-subtask.use-case';
 import { UserRole } from '../../entities/user.entity';
 
 export interface CreateJobInput {
@@ -15,6 +16,7 @@ export interface CreateJobInput {
   contractorId: string;
   homeownerId: string;
   cost?: number;
+  subtasks?: Array<{ description: string; deadline?: string; cost?: number }>;
 }
 
 @Injectable()
@@ -22,6 +24,7 @@ export class CreateJobUseCase {
   constructor(
     private readonly jobRepository: JobRepository,
     private readonly userRepository: UserRepository,
+    private readonly createSubtaskUseCase: CreateSubtaskUseCase,
   ) {}
 
   async execute(input: CreateJobInput): Promise<JobEntity> {
@@ -64,6 +67,22 @@ export class CreateJobUseCase {
       status: JobStatus.PLANNING,
     });
 
-    return this.jobRepository.create(job);
+    const createdJob = await this.jobRepository.create(job);
+
+    // If subtasks provided, create them attached to the created job
+    if (input.subtasks && input.subtasks.length) {
+      await Promise.all(
+        input.subtasks.map((s) =>
+          this.createSubtaskUseCase.execute({
+            jobId: createdJob.id,
+            description: s.description,
+            deadline: s.deadline ? new Date(s.deadline) : null,
+            cost: s.cost ?? 0,
+          }),
+        ),
+      );
+    }
+
+    return createdJob;
   }
 }

@@ -7,6 +7,7 @@ interface ProjectCostCardProps {
   cost: number;
   onUpdateCost?: () => void;
   canEdit?: boolean;
+  jobStatus?: string;
 }
 
 function formatCurrency(value: number): string {
@@ -22,7 +23,11 @@ export function ProjectCostCard({
   cost,
   onUpdateCost,
   canEdit = false,
+  jobStatus,
 }: ProjectCostCardProps) {
+  const disabled =
+    !canEdit || jobStatus === "COMPLETED" || jobStatus === "CANCELED";
+
   return (
     <Paper
       sx={{
@@ -66,6 +71,7 @@ export function ProjectCostCard({
           variant="outlined"
           fullWidth
           onClick={onUpdateCost}
+          disabled={disabled}
           sx={{
             borderColor: "divider",
             color: "text.primary",

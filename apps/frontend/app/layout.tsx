@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Home Renovation Project Tracker",
+  title: "Renovation Tracker",
   description: "Track your home renovation projects",
 };
 

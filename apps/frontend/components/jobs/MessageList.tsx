@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Box,
-  Paper,
-  Typography,
-  Avatar,
-  TextField,
-  Button,
-} from "@mui/material";
+import { Box, Paper, Typography, TextField, Button } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { useState } from "react";
 
@@ -58,6 +51,18 @@ export function MessageList({
 }: MessageListProps) {
   const [newMessage, setNewMessage] = useState("");
 
+  // Defensive: dedupe messages by `id` and ensure stable ordering by timestamp
+  // to avoid React's "Encountered two children with the same key" warning
+  // when upstream state updates race (optimistic + server updates).
+  const messagesById = new Map<string, Message>();
+  for (const m of messages) {
+    // prefer server-confirmed messages over optimistic ones if ids collide
+    messagesById.set(m.id, m);
+  }
+  const messagesToRender = Array.from(messagesById.values()).sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim()) {
@@ -95,7 +100,7 @@ export function MessageList({
           gap: 2,
         }}
       >
-        {messages.map((message) => (
+        {messagesToRender.map((message) => (
           <Box
             key={message.id}
             sx={{
@@ -142,7 +147,7 @@ export function MessageList({
           </Box>
         ))}
 
-        {messages.length === 0 && (
+        {messagesToRender.length === 0 && (
           <Box
             sx={{
               flex: 1,

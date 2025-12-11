@@ -18,6 +18,24 @@ export type GQLJob = {
   contractor?: { id?: string; name?: string; email?: string } | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+  subtasks?: GQLSubtask[] | null;
+};
+
+export type GQLSubtask = {
+  id: string;
+  description?: string | null;
+  deadline?: string | null;
+  cost?: number | null;
+  status?: string | null;
+};
+
+export type GQLMessage = {
+  id: string;
+  content: string;
+  jobId: string;
+  senderId: string;
+  createdAt: string;
+  sender?: { id?: string; name?: string; email?: string } | null;
 };
 
 export type AuthUser = {

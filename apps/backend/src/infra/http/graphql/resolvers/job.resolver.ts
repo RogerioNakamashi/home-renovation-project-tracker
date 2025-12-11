@@ -14,6 +14,7 @@ import { UpdateJobInput } from '../dto/update-job.input';
 import { UpdateJobCostInput } from '../dto/update-job-cost.input';
 import { UpdateJobStatusInput } from '../dto/update-job-status.input';
 import { CreateJobUseCase } from '../../../../core/use-cases/job/create-job.use-case';
+import { CompleteSubtaskUseCase } from '../../../../core/use-cases/subtask/complete-subtask.use-case';
 import { FindAllJobsUseCase } from '../../../../core/use-cases/job/find-all-jobs.use-case';
 import { FindJobByIdUseCase } from '../../../../core/use-cases/job/find-job-by-id.use-case';
 import { FindJobsByContractorUseCase } from '../../../../core/use-cases/job/find-jobs-by-contractor.use-case';
@@ -23,6 +24,8 @@ import { UpdateJobCostUseCase } from '../../../../core/use-cases/job/update-job-
 import { UpdateJobStatusUseCase } from '../../../../core/use-cases/job/update-job-status.use-case';
 import { DeleteJobUseCase } from '../../../../core/use-cases/job/delete-job.use-case';
 import { FindUserByIdUseCase } from '../../../../core/use-cases/user/find-user-by-id.use-case';
+import { SubtaskRepository } from '../../../../core/repositories/subtask.repository';
+import { SubtaskType } from '../types/subtask.type';
 import { JobStatus } from '../../../../core/entities/job.entity';
 
 @Resolver(() => JobType)
@@ -38,6 +41,8 @@ export class JobResolver {
     private readonly updateJobStatusUseCase: UpdateJobStatusUseCase,
     private readonly deleteJobUseCase: DeleteJobUseCase,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
+    private readonly subtaskRepository: SubtaskRepository,
+    private readonly completeSubtaskUseCase: CompleteSubtaskUseCase,
   ) {}
 
   @Query(() => [JobType], { name: 'jobs' })
@@ -79,6 +84,11 @@ export class JobResolver {
       contractorId: input.contractorId,
       homeownerId: input.homeownerId,
       cost: input.cost,
+      subtasks: input.subtasks?.map((s) => ({
+        description: s.description,
+        deadline: s.deadline ?? undefined,
+        cost: s.cost ?? undefined,
+      })),
     });
     return this.toGraphQL(job);
   }
@@ -152,6 +162,39 @@ export class JobResolver {
           updatedAt: user.updatedAt,
         }
       : null;
+  }
+
+  @ResolveField(() => [SubtaskType], { nullable: true })
+  async subtasks(@Parent() job: JobType): Promise<SubtaskType[] | null> {
+    const rows = await this.subtaskRepository.findByJobId(job.id);
+    if (!rows || !rows.length) return null;
+    return rows.map((s) => ({
+      id: s.id,
+      jobId: s.jobId,
+      description: s.description,
+      deadline: s.deadline ?? null,
+      cost: s.cost,
+      status: s.status,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    }));
+  }
+
+  @Mutation(() => SubtaskType)
+  async completeSubtask(
+    @Args('subtaskId', { type: () => ID }) subtaskId: string,
+  ): Promise<SubtaskType> {
+    const s = await this.completeSubtaskUseCase.execute(subtaskId);
+    return {
+      id: s.id,
+      jobId: s.jobId,
+      description: s.description,
+      deadline: s.deadline ?? null,
+      cost: s.cost,
+      status: s.status,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    };
   }
 
   private toGraphQL(entity: {

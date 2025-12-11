@@ -12,6 +12,8 @@ import {
   MenuItem,
   SelectChangeEvent,
   Paper,
+  Chip,
+  Radio,
 } from "@mui/material";
 import {
   Dialog,
@@ -35,18 +37,26 @@ import {
   GET_JOB_QUERY,
   UPDATE_JOB_COST_MUTATION,
   UPDATE_JOB_STATUS_MUTATION,
+  COMPLETE_SUBTASK_MUTATION,
 } from "@/lib/graphql/job";
+import {
+  GET_MESSAGES_BY_JOB_QUERY,
+  SEND_MESSAGE_MUTATION,
+} from "@/lib/graphql/message";
 
-import type { GQLJob, AuthUser } from "@/lib/graphql/types";
+import type {
+  GQLJob,
+  AuthUser,
+  GQLMessage,
+  GQLSubtask,
+} from "@/lib/graphql/types";
 
 export default function JobDetailPage() {
   const router = useRouter();
   const params = useParams();
   const jobId = params.id as string;
 
-  const [user, setUser] = useState<AuthUser | null>(
-    getUser() as AuthUser | null
-  );
+  const [user] = useState<AuthUser | null>(getUser() as AuthUser | null);
   // derive job from query result (avoid duplicating cache state)
   type Message = {
     id: string;
@@ -56,7 +66,7 @@ export default function JobDetailPage() {
     timestamp: string;
     isOwnMessage: boolean;
   };
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [updateCostOpen, setUpdateCostOpen] = useState(false);
   const [newCostInput, setNewCostInput] = useState<string>(String(0));
 
@@ -75,6 +85,26 @@ export default function JobDetailPage() {
     UpdateJobStatusResp,
     UpdateJobStatusVars
   >(UPDATE_JOB_STATUS_MUTATION);
+
+  const [completeSubtask] = useMutation<
+    { completeSubtask: GQLSubtask },
+    { subtaskId: string }
+  >(COMPLETE_SUBTASK_MUTATION);
+
+  const { data: messagesData } = useQuery<{ messagesByJob: GQLMessage[] }>(
+    GET_MESSAGES_BY_JOB_QUERY,
+    {
+      variables: { jobId },
+      skip: !jobId,
+      pollInterval: 3000,
+      fetchPolicy: "network-only",
+    }
+  );
+
+  const [sendMessage] = useMutation<
+    { sendMessage: GQLMessage },
+    { input: { jobId: string; content: string; senderId: string } }
+  >(SEND_MESSAGE_MUTATION);
 
   const {
     data: jobData,
@@ -135,10 +165,10 @@ export default function JobDetailPage() {
   }
 
   const job = jobData.job;
+  const subtasks: GQLSubtask[] = (job.subtasks ?? []) as GQLSubtask[];
 
   const handleStatusChange = async (event: SelectChangeEvent<JobStatus>) => {
     const newStatus = event.target.value as JobStatus;
-    console.log({ newStatus });
     try {
       if (!jobData.job) return;
       await updateJobStatus({
@@ -151,25 +181,66 @@ export default function JobDetailPage() {
         refetchQueries: [{ query: GET_JOB_QUERY, variables: { id: job.id } }],
         awaitRefetchQueries: true,
       });
-      // refetch will update mappedJob
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("update status failed", err);
+      console.log("update status failed", err);
     }
   };
 
-  const handleSendMessage = (content: string) => {
-    const newMessage = {
-      id: `m${messages.length + 1}`,
-      senderId:
-        user?.email && user.email.includes("contractor") ? "c-1" : "hw-1",
-      senderName: user?.name || "Unknown",
+  const handleSendMessage = async (content: string) => {
+    const senderId = getUserId() ?? "";
+
+    const optimistic: Message = {
+      id: `local-${Date.now()}`,
+      senderId: senderId ?? "",
+      senderName: user?.name || "You",
       content,
       timestamp: new Date().toISOString(),
       isOwnMessage: true,
     };
-    setMessages([...messages, newMessage]);
-    // TODO: GraphQL mutation to send message
+    setLocalMessages((s) => [...s, optimistic]);
+
+    try {
+      const res = await sendMessage({
+        variables: { input: { jobId: job.id, content, senderId } },
+      });
+
+      const serverMsg = res?.data?.sendMessage;
+      if (serverMsg) {
+        const confirmed: Message = {
+          id: serverMsg.id,
+          senderId: serverMsg.senderId,
+          senderName: serverMsg.sender?.name ?? user?.name ?? "",
+          content: serverMsg.content,
+          timestamp: serverMsg.createdAt,
+          isOwnMessage: serverMsg.senderId === currentUserId,
+        };
+
+        // Replace the optimistic entry (if present) with the confirmed server message.
+        setLocalMessages((prev) => {
+          const replaced = prev.map((m) =>
+            m.id.startsWith("local-") &&
+            m.content === content &&
+            m.senderId === senderId
+              ? confirmed
+              : m
+          );
+          // If optimistic wasn't present for some reason, ensure server message is included
+          if (!replaced.some((m) => m.id === confirmed.id)) {
+            replaced.push(confirmed);
+          }
+          // Remove any lingering local- IDs that were replaced by server ids
+          return replaced.filter(
+            (m) => !m.id.startsWith("local-") || m.id === confirmed.id
+          );
+        });
+      } else {
+        // Fallback: remove optimistic entries if server didn't return a message
+        setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
+      }
+    } catch (err) {
+      console.log("send message failed", err);
+      setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
+    }
   };
 
   const handleMarkComplete = () => {
@@ -183,9 +254,21 @@ export default function JobDetailPage() {
         if (res?.data?.updateJobStatus) {
         }
       } catch (err) {
-        console.error("mark complete failed", err);
+        console.log("mark complete failed", err);
       }
     })();
+  };
+
+  const handleCompleteSubtask = async (subtaskId: string) => {
+    try {
+      await completeSubtask({
+        variables: { subtaskId },
+        refetchQueries: [{ query: GET_JOB_QUERY, variables: { id: job.id } }],
+        awaitRefetchQueries: true,
+      });
+    } catch (err) {
+      console.log("complete subtask failed", err);
+    }
   };
 
   const handleCancelJob = () => {
@@ -199,7 +282,7 @@ export default function JobDetailPage() {
         if (res?.data?.updateJobStatus) {
         }
       } catch (err) {
-        console.error("cancel job failed", err);
+        console.log("cancel job failed", err);
       }
     })();
   };
@@ -227,15 +310,27 @@ export default function JobDetailPage() {
       });
       closeUpdateCost();
     } catch (err) {
-      console.error("update cost failed", err);
+      console.log("update cost failed", err);
     }
   };
 
-  // Update message ownership based on current user
-  const messagesWithOwnership = messages.map((msg) => ({
-    ...msg,
-    isOwnMessage: msg.senderId === currentUserId,
-  }));
+  const fetchedMessages: Message[] = (messagesData?.messagesByJob ?? []).map(
+    (m) => ({
+      id: m.id,
+      senderId: m.senderId,
+      senderName: m.sender?.name ?? "",
+      content: m.content,
+      timestamp: m.createdAt,
+      isOwnMessage: m.senderId === currentUserId,
+    })
+  );
+
+  const combinedMessages = [...fetchedMessages, ...localMessages].map(
+    (msg) => ({
+      ...msg,
+      isOwnMessage: msg.senderId === currentUserId,
+    })
+  );
 
   return (
     <MainLayout user={layoutUser} onLogout={handleLogout}>
@@ -278,34 +373,28 @@ export default function JobDetailPage() {
               {job.name}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              {isContractor ? (
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <Select
-                    value={job.status}
-                    onChange={handleStatusChange}
-                    sx={{
-                      bgcolor: "background.paper",
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "divider",
-                      },
-                    }}
-                  >
-                    <MenuItem value="PLANNING">Planning</MenuItem>
-                    <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
-                    <MenuItem value="COMPLETED">Completed</MenuItem>
-                    <MenuItem value="CANCELED">Canceled</MenuItem>
-                  </Select>
-                </FormControl>
-              ) : (
-                <Box
-                  sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <Select
+                  disabled={
+                    job.status === "COMPLETED" ||
+                    job.status === "CANCELED" ||
+                    !isContractor
+                  }
+                  value={job.status}
+                  onChange={handleStatusChange}
+                  sx={{
+                    bgcolor: "background.paper",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "divider",
+                    },
+                  }}
                 >
-                  <Typography variant="body2" color="text.secondary">
-                    Status
-                  </Typography>
-                  <Typography variant="body1">{status}</Typography>
-                </Box>
-              )}
+                  <MenuItem value="PLANNING">Planning</MenuItem>
+                  <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+                  <MenuItem value="COMPLETED">Completed</MenuItem>
+                  <MenuItem value="CANCELED">Canceled</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
           </Box>
         </Paper>
@@ -326,10 +415,99 @@ export default function JobDetailPage() {
                 }}
               />
 
+              {/* Subtasks (from backend) */}
+              <Box>
+                <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                  Subtasks
+                </Typography>
+                {subtasks.length > 0 ? (
+                  <Box sx={{ display: "grid", gap: 2 }}>
+                    {subtasks.map((s: GQLSubtask) => (
+                      <Paper
+                        key={s.id}
+                        sx={{
+                          p: 2,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          border: 1,
+                          borderColor: "divider",
+                        }}
+                        elevation={0}
+                      >
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                        >
+                          <Radio
+                            checked={s.status === "COMPLETED"}
+                            disabled={s.status === "COMPLETED" || !isContractor}
+                            onChange={() => {
+                              if (s.status !== "COMPLETED" && isContractor) {
+                                handleCompleteSubtask(s.id);
+                              }
+                            }}
+                            value={s.id}
+                            inputProps={{
+                              "aria-label": `complete-subtask-${s.id}`,
+                            }}
+                          />
+                          <Box>
+                            <Typography sx={{ fontWeight: 500 }}>
+                              {s.description}
+                            </Typography>
+                            <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {s.deadline
+                                  ? new Date(s.deadline).toLocaleDateString()
+                                  : "No deadline"}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {s.cost ? `$${s.cost}` : ""}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label={
+                            s.status
+                              ? s.status.charAt(0) +
+                                s.status.slice(1).toLowerCase()
+                              : "Pending"
+                          }
+                          color={
+                            s.status === "COMPLETED"
+                              ? "success"
+                              : s.status === "PENDING"
+                                ? "warning"
+                                : "default"
+                          }
+                          size="small"
+                        />
+                      </Paper>
+                    ))}
+                  </Box>
+                ) : (
+                  <Paper
+                    sx={{ p: 2, border: 1, borderColor: "divider" }}
+                    elevation={0}
+                  >
+                    <Typography color="text.secondary">
+                      No subtasks added yet
+                    </Typography>
+                  </Paper>
+                )}
+              </Box>
+
               {/* Messages */}
               <Box sx={{ minHeight: 400 }}>
                 <MessageList
-                  messages={messagesWithOwnership}
+                  messages={combinedMessages}
                   currentUserId={currentUserId}
                   onSendMessage={handleSendMessage}
                 />
@@ -345,6 +523,7 @@ export default function JobDetailPage() {
                 cost={Number(job.cost ?? 0)}
                 onUpdateCost={handleUpdateCost}
                 canEdit={isContractor}
+                jobStatus={job.status}
               />
 
               {/* Update Cost Dialog */}
