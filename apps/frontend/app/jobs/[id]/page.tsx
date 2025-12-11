@@ -523,6 +523,7 @@ export default function JobDetailPage() {
                 cost={Number(job.cost ?? 0)}
                 onUpdateCost={handleUpdateCost}
                 canEdit={isContractor}
+                jobStatus={job.status}
               />
 
               {/* Update Cost Dialog */}
