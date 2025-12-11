@@ -189,10 +189,43 @@ export default function JobDetailPage() {
     setLocalMessages((s) => [...s, optimistic]);
 
     try {
-      await sendMessage({
+      const res = await sendMessage({
         variables: { input: { jobId: job.id, content, senderId } },
       });
-      setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
+
+      const serverMsg = res?.data?.sendMessage;
+      if (serverMsg) {
+        const confirmed: Message = {
+          id: serverMsg.id,
+          senderId: serverMsg.senderId,
+          senderName: serverMsg.sender?.name ?? user?.name ?? "",
+          content: serverMsg.content,
+          timestamp: serverMsg.createdAt,
+          isOwnMessage: serverMsg.senderId === currentUserId,
+        };
+
+        // Replace the optimistic entry (if present) with the confirmed server message.
+        setLocalMessages((prev) => {
+          const replaced = prev.map((m) =>
+            m.id.startsWith("local-") &&
+            m.content === content &&
+            m.senderId === senderId
+              ? confirmed
+              : m
+          );
+          // If optimistic wasn't present for some reason, ensure server message is included
+          if (!replaced.some((m) => m.id === confirmed.id)) {
+            replaced.push(confirmed);
+          }
+          // Remove any lingering local- IDs that were replaced by server ids
+          return replaced.filter(
+            (m) => !m.id.startsWith("local-") || m.id === confirmed.id
+          );
+        });
+      } else {
+        // Fallback: remove optimistic entries if server didn't return a message
+        setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
+      }
     } catch (err) {
       console.error("send message failed", err);
       setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
@@ -275,6 +308,8 @@ export default function JobDetailPage() {
       isOwnMessage: msg.senderId === currentUserId,
     })
   );
+
+  console.log({ combinedMessages });
 
   return (
     <MainLayout user={layoutUser} onLogout={handleLogout}>
