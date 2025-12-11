@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { Logout, Person } from "@mui/icons-material";
 import { useState } from "react";
+import { clearAuth } from "@/lib/auth";
 
 interface User {
   name: string;
@@ -48,6 +49,7 @@ export function AppBar({ user, onLogout }: AppBarProps) {
   };
 
   const handleLogout = () => {
+    clearAuth();
     handleClose();
     onLogout?.();
   };

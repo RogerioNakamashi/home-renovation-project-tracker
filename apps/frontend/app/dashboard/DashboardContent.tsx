@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import { GET_USER_WITH_JOBS_QUERY } from "@/lib/graphql";
 import { CREATE_JOB_MUTATION } from "@/lib/graphql/job";
 import { GET_HOMEOWNERS_QUERY } from "@/lib/graphql/auth";
-import { getUserId, getUser } from "@/lib/auth";
+import { getUserId, getUser, clearAuth } from "@/lib/auth";
 import type { GQLUser, GQLJob } from "@/lib/graphql/types";
 
 type FilterStatus = "all" | JobStatus;
@@ -92,6 +92,7 @@ export default function DashboardContent() {
     : null;
 
   const handleLogout = () => {
+    clearAuth();
     router.push("/login");
   };
 
@@ -165,7 +166,7 @@ export default function DashboardContent() {
 
       closeCreate();
     } catch (err) {
-      console.error("create job failed", err);
+      console.log("create job failed", err);
     }
   };
 

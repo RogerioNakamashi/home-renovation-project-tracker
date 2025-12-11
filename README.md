@@ -16,6 +16,7 @@ This application tracks home renovation projects (jobs). Homeowners create proje
 
 - `User` — system user with `role` (either `HOMEOWNER` or `CONTRACTOR`), `name`, `email`. Passwords are handled securely on the backend.
 - `Job` — a renovation project with fields like `id`, `title/name`, `description`, `address`, `status`, `cost`, `homeownerId`, `contractorId`, `createdAt`, `updatedAt`.
+- `Subtask` — a list of a `Job` subtasks
 - `Message` — chat messages attached to a `Job`.
 
 Entity models live in `apps/backend/prisma/schema.prisma` and business rules live in backend use-case layers.
@@ -52,47 +53,17 @@ Useful URLs
 - Frontend: http://localhost:3001
 - GraphQL Playground: http://localhost:4000/graphql
 
-## Create users (GraphQL)
+## Create users
 
 You need at least two users for the flows to work locally: one `CONTRACTOR` and one `HOMEOWNER`.
 
-Open the GraphQL Playground (`http://localhost:4000/graphql`) and run the `createUser` mutation. Example:
+The frontend includes a small admin UI for creating users. Open the app and visit the admin users page to create accounts using a form (no GraphQL call required):
 
-```graphql
-mutation CreateContractor {
-  createUser(
-    input: {
-      email: "contractor@example.com"
-      name: "Contractor One"
-      password: "password123"
-      role: CONTRACTOR
-    }
-  ) {
-    id
-    name
-    email
-    role
-    createdAt
-  }
-}
+- Frontend admin URL: `http://localhost:3001/admin/users`
 
-mutation CreateHomeowner {
-  createUser(
-    input: {
-      email: "homeowner@example.com"
-      name: "Homeowner One"
-      password: "password123"
-      role: HOMEOWNER
-    }
-  ) {
-    id
-    name
-    email
-    role
-    createdAt
-  }
-}
-```
+Use the form to create a `CONTRACTOR` and a `HOMEOWNER`. After creating users you can `login` (GraphQL mutation) to retrieve auth tokens, or for quick local testing populate the frontend `localStorage` with a user object (see `apps/frontend/lib/auth` for helpers).
+
+If you prefer to use the API directly you can still use the GraphQL Playground at `http://localhost:4000/graphql` and run the `createUser` mutation, but the admin UI is the easiest path for local development.
 
 After creating users you can `login` (GraphQL mutation) to retrieve auth tokens, or for quick local testing populate the frontend `localStorage` with a user object (see `apps/frontend/lib/auth` for helpers).
 

@@ -39,7 +39,7 @@ export default function LoginPage() {
       router.push("/dashboard");
     },
     onError: (error) => {
-      console.error("Login error:", error);
+      console.log("Login error:", error);
       setError(error.message || "Login failed. Please try again.");
     },
   });

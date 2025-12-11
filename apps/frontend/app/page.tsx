@@ -14,7 +14,7 @@ export default function Home() {
     if (userId) {
       router.push("/dashboard");
     } else {
-      router.push("/login");
+      router.push("/admin/users");
     }
   }, [router]);
 

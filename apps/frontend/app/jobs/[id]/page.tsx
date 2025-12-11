@@ -182,7 +182,7 @@ export default function JobDetailPage() {
         awaitRefetchQueries: true,
       });
     } catch (err) {
-      console.error("update status failed", err);
+      console.log("update status failed", err);
     }
   };
 
@@ -238,7 +238,7 @@ export default function JobDetailPage() {
         setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
       }
     } catch (err) {
-      console.error("send message failed", err);
+      console.log("send message failed", err);
       setLocalMessages((s) => s.filter((m) => !m.id.startsWith("local-")));
     }
   };
@@ -254,7 +254,7 @@ export default function JobDetailPage() {
         if (res?.data?.updateJobStatus) {
         }
       } catch (err) {
-        console.error("mark complete failed", err);
+        console.log("mark complete failed", err);
       }
     })();
   };
@@ -267,7 +267,7 @@ export default function JobDetailPage() {
         awaitRefetchQueries: true,
       });
     } catch (err) {
-      console.error("complete subtask failed", err);
+      console.log("complete subtask failed", err);
     }
   };
 
@@ -282,7 +282,7 @@ export default function JobDetailPage() {
         if (res?.data?.updateJobStatus) {
         }
       } catch (err) {
-        console.error("cancel job failed", err);
+        console.log("cancel job failed", err);
       }
     })();
   };
@@ -310,7 +310,7 @@ export default function JobDetailPage() {
       });
       closeUpdateCost();
     } catch (err) {
-      console.error("update cost failed", err);
+      console.log("update cost failed", err);
     }
   };
 

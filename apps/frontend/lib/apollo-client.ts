@@ -28,7 +28,6 @@ const authLink = setContext((_, { headers }) => {
 const errorLink = onError(({ error }) => {
   if (CombinedGraphQLErrors.is(error)) {
     for (const err of error.errors) {
-      console.error(`[GraphQL error]: Message: ${err.message}`);
       if (
         err.extensions?.code === "UNAUTHENTICATED" ||
         err.message.includes("Unauthorized")
@@ -41,7 +40,7 @@ const errorLink = onError(({ error }) => {
     }
   } else if (error) {
     // Network or other errors
-    console.error(`[Network error]:`, error);
+    console.log(`[Network error]:`, error);
   }
 });
 
